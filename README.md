@@ -246,7 +246,7 @@ Attackers often install your app on a rooted device or emulator, attach a debugg
 
 It detects these hostile environments so you can restrict features, clear sensitive data, or crash the app.
 
-![RASP Security Report in Action](https://raw.githubusercontent.com/neelakandanz/flutter-neo-shield/main/screenshots/rasp_report.png)
+![RASP Security Report in Action](https://raw.githubusercontent.com/neelakandanz/flutter-neo-shield/master/screenshots/rasp_report.png)
 
 ```dart
 import 'package:flutter_neo_shield/rasp_shield.dart';
