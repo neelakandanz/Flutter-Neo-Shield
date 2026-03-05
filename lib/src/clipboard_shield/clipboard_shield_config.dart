@@ -28,6 +28,11 @@ class ClipboardShieldConfig {
 
   /// Default duration after which the clipboard is auto-cleared.
   ///
+  /// **Limitations:** The timer runs inside the Dart isolate. If the app
+  /// is killed or force-stopped before the timer fires, the clipboard is
+  /// NOT cleared. System clipboard history apps (Gboard, Samsung Keyboard,
+  /// etc.) may also retain a copy independently of this timer.
+  ///
   /// Set to [Duration.zero] to disable auto-clear.
   final Duration defaultExpiry;
 

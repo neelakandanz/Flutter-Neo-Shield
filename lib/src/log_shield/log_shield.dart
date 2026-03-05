@@ -98,7 +98,7 @@ class LogShield {
 
     final buffer = StringBuffer();
 
-    if (_config.timestampFormat != null) {
+    if (_config.showTimestamp) {
       buffer.write('[${DateTime.now().toIso8601String()}] ');
     }
 
@@ -131,7 +131,7 @@ class LogShield {
 
     final buffer = StringBuffer();
 
-    if (_config.timestampFormat != null) {
+    if (_config.showTimestamp) {
       buffer.write('[${DateTime.now().toIso8601String()}] ');
     }
 
@@ -160,7 +160,7 @@ class LogShield {
 
     final buffer = StringBuffer();
 
-    if (_config.timestampFormat != null) {
+    if (_config.showTimestamp) {
       buffer.write('[${DateTime.now().toIso8601String()}] ');
     }
 
@@ -174,7 +174,10 @@ class LogShield {
     }
 
     if (stackTrace != null) {
-      buffer.write('\n  StackTrace: $stackTrace');
+      final stackStr = stackTrace.toString();
+      final displayStack =
+          shouldSanitize ? detector.sanitize(stackStr) : stackStr;
+      buffer.write('\n  StackTrace: $displayStack');
     }
 
     _output(buffer.toString(), 'ERROR');

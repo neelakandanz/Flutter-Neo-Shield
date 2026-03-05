@@ -103,15 +103,23 @@ class _SecurePasteFieldState extends State<SecurePasteField> {
   }
 
   void _onChanged(String newText) {
-    // Detect paste by checking if more than one character was added at once.
+    // Detect paste by checking if multiple characters were added at once
+    // and the new text doesn't start with the old text (insertion, not append).
+    // Threshold of 3 chars reduces false positives from autocorrect/IME.
     final lengthDiff = newText.length - _previousText.length;
-    if (lengthDiff > 1) {
-      // Likely a paste action.
-      final pastedText = newText.substring(
-        _previousText.length,
-      );
+    if (lengthDiff >= 3) {
+      // Determine the inserted segment.
+      // If the old text is a prefix, the paste is at the end.
+      // Otherwise, find the divergence point.
+      String pastedText;
+      if (newText.startsWith(_previousText)) {
+        pastedText = newText.substring(_previousText.length);
+      } else {
+        pastedText = newText;
+      }
 
       if (widget.clearAfterPaste) {
+        // Await the clear to reduce the race window.
         ClipboardShield().clearNow();
       }
 

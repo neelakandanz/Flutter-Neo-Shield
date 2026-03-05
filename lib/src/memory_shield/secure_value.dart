@@ -20,7 +20,7 @@ import 'memory_shield.dart';
 /// print(secret.value); // {'key': 'value'}
 /// secret.dispose();
 /// ```
-class SecureValue<T> {
+class SecureValue<T> implements SecureDisposable {
   /// Creates a [SecureValue] holding the given [value].
   ///
   /// The optional [wiper] function is called on dispose to perform
@@ -77,6 +77,7 @@ class SecureValue<T> {
   /// ```dart
   /// secret.dispose();
   /// ```
+  @override
   @mustCallSuper
   void dispose() {
     if (_isDisposed) return;
@@ -84,11 +85,14 @@ class SecureValue<T> {
     _autoDisposeTimer?.cancel();
     _autoDisposeTimer = null;
 
-    if (wiper != null && _value != null) {
-      wiper!(_value as T);
+    try {
+      if (wiper != null && _value != null) {
+        wiper!(_value as T);
+      }
+    } finally {
+      _value = null;
+      MemoryShield().unregister(this);
     }
-    _value = null;
-    MemoryShield().unregister(this);
   }
 
   /// Executes [action] with the value, then immediately disposes.

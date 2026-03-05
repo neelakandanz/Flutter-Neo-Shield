@@ -19,7 +19,7 @@ class StringShieldConfig {
   /// Creates a [StringShieldConfig] with the specified options.
   const StringShieldConfig({
     this.defaultStrategy = ObfuscationStrategy.xor,
-    this.enableCache = true,
+    this.enableCache = false,
     this.enableStats = false,
   });
 
@@ -28,9 +28,11 @@ class StringShieldConfig {
 
   /// Whether to cache deobfuscated strings after first access.
   ///
-  /// When true, each obfuscated string is decrypted once and the result
-  /// is kept in memory for subsequent accesses. When false, the string
-  /// is decrypted on every access (more secure but slower).
+  /// When true, each obfuscated string is decrypted once and the
+  /// plaintext result is kept in a `Map<String, String>` for subsequent
+  /// accesses. This is faster but means secrets sit in memory in clear
+  /// text. Defaults to false for security; opt in when performance of
+  /// repeated access matters more than memory exposure.
   final bool enableCache;
 
   /// Whether to track deobfuscation statistics.

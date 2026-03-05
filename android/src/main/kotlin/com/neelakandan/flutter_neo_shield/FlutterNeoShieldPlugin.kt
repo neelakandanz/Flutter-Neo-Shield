@@ -85,7 +85,8 @@ class FlutterNeoShieldPlugin : FlutterPlugin, MethodCallHandler {
                 if (context != null) {
                     result.success(com.neelakandan.flutter_neo_shield.rasp.HookDetector().check(context))
                 } else {
-                    result.success(false)
+                    // Fail closed: report as detected when context unavailable.
+                    result.success(true)
                 }
             }
             "checkFrida" -> {
@@ -96,7 +97,8 @@ class FlutterNeoShieldPlugin : FlutterPlugin, MethodCallHandler {
                 if (context != null) {
                     result.success(com.neelakandan.flutter_neo_shield.rasp.IntegrityDetector().check(context))
                 } else {
-                    result.success(false)
+                    // Fail closed: report as detected when context unavailable.
+                    result.success(true)
                 }
             }
             else -> {

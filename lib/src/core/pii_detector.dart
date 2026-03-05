@@ -34,25 +34,80 @@ class PIIDetector {
   final Set<String> _sensitiveNames = {};
 
   /// The default sensitive keys used for JSON sanitization.
+  ///
+  /// Keys are matched case-insensitively against JSON map keys.
+  /// Add additional keys via [sanitizeJson]'s `sensitiveKeys` parameter
+  /// or by configuring [ShieldConfig.customPatterns].
   static const List<String> defaultSensitiveKeys = [
+    // Identity
     'name',
+    'username',
+    'user_name',
+    'first_name',
+    'firstName',
+    'last_name',
+    'lastName',
+    'full_name',
+    'fullName',
     'email',
     'phone',
+    'phone_number',
+    'phoneNumber',
     'ssn',
-    'password',
-    'token',
-    'address',
+    'social_security',
+    'dob',
+    'date_of_birth',
+    'dateOfBirth',
     'birthDate',
-    'telecom',
-    'identifier',
-    'creditCard',
-    'cardNumber',
-    'cvv',
+    'birth_date',
+    // Address
+    'address',
+    'street',
+    'zip',
+    'postal_code',
+    'postalCode',
+    // Auth & secrets
+    'password',
+    'passwd',
+    'pwd',
+    'pass',
+    'pin',
+    'token',
     'secret',
     'access_token',
+    'accessToken',
     'refresh_token',
+    'refreshToken',
     'api_key',
+    'apiKey',
+    'api_secret',
+    'apiSecret',
+    'private_key',
+    'privateKey',
     'authorization',
+    'auth',
+    'bearer',
+    'session',
+    'session_id',
+    'sessionId',
+    'cookie',
+    // Financial
+    'creditCard',
+    'credit_card',
+    'cardNumber',
+    'card_number',
+    'cvv',
+    'cvc',
+    'account',
+    'account_number',
+    'accountNumber',
+    'routing',
+    'routing_number',
+    'routingNumber',
+    'iban',
+    // Medical / telecom
+    'telecom',
+    'identifier',
   ];
 
   /// Configures the detector with the given [config].
@@ -95,13 +150,14 @@ class PIIDetector {
 
   /// Registers a single sensitive [name] for name detection.
   ///
-  /// Names must be at least 2 characters to avoid false positives.
+  /// Names must be at least 3 characters to avoid false positives
+  /// with common English words (e.g., "Al", "Jo", "Ed").
   ///
   /// ```dart
   /// PIIDetector().registerName('John');
   /// ```
   void registerName(String name) {
-    if (name.length >= 2) {
+    if (name.length >= 3) {
       _sensitiveNames.add(name);
     }
   }
@@ -143,6 +199,8 @@ class PIIDetector {
 
   /// Adds a custom [PIIPattern] at runtime.
   ///
+  /// Duplicate patterns (same type and regex) are silently ignored.
+  ///
   /// ```dart
   /// PIIDetector().addPattern(PIIPattern(
   ///   type: PIIType.custom,
@@ -151,7 +209,12 @@ class PIIDetector {
   /// ));
   /// ```
   void addPattern(PIIPattern pattern) {
-    _patterns.add(pattern);
+    final isDuplicate = _patterns.any(
+      (p) => p.type == pattern.type && p.regex.pattern == pattern.regex.pattern,
+    );
+    if (!isDuplicate) {
+      _patterns.add(pattern);
+    }
   }
 
   /// Removes all patterns of the given [type].
@@ -228,11 +291,15 @@ class PIIDetector {
           ).firstMatch(matched);
           if (keyMatch != null) {
             final key = keyMatch.group(0)!;
-            final separator = matched.substring(
-              keyMatch.end,
-              matched.indexOf(RegExp(r'[=:]'), keyMatch.end) + 1,
-            );
-            finalReplacement = '$key$separator[HIDDEN]';
+            final sepIndex =
+                matched.indexOf(RegExp(r'[=:]'), keyMatch.end);
+            if (sepIndex >= 0) {
+              final separator =
+                  matched.substring(keyMatch.end, sepIndex + 1);
+              finalReplacement = '$key$separator[HIDDEN]';
+            } else {
+              finalReplacement = '$key=[HIDDEN]';
+            }
           } else {
             finalReplacement = replacement;
           }
@@ -261,7 +328,7 @@ class PIIDetector {
     if (_config.isTypeEnabled(PIIType.name) && _sensitiveNames.isNotEmpty) {
       final namePriority = _patterns.length; // Lowest priority.
       for (final name in _sensitiveNames) {
-        if (name.length < 2) continue;
+        if (name.length < 3) continue;
 
         final nameRegex = RegExp(
           '\\b${RegExp.escape(name)}\\b',
@@ -440,6 +507,7 @@ class PIIDetector {
         replacement: '[SSN HIDDEN]',
         description:
             'US Social Security Numbers without dashes (9 consecutive digits)',
+        validator: _ssnNoDashValidate,
       ),
 
       // 2. Credit Card — Luhn-validated.
@@ -459,10 +527,10 @@ class PIIDetector {
         description: 'JSON Web Tokens',
       ),
 
-      // 4. Bearer Token.
+      // 4. Bearer Token — require token-like content (min 8 chars, alphanumeric/symbols).
       PIIPattern(
         type: PIIType.bearerToken,
-        regex: RegExp(r'Bearer\s+\S+', caseSensitive: false),
+        regex: RegExp(r'Bearer\s+[A-Za-z0-9_\-./+=]{8,}', caseSensitive: false),
         replacement: 'Bearer [TOKEN HIDDEN]',
         description: 'Authorization bearer tokens',
       ),
@@ -478,19 +546,19 @@ class PIIDetector {
         description: 'Password and secret key-value pairs',
       ),
 
-      // 6. API Key — common prefixed formats.
+      // 6. API Key — common prefixed formats (dash or underscore separator).
       PIIPattern(
         type: PIIType.apiKey,
-        regex: RegExp(r'\b(?:sk|pk|api|key|token)-[A-Za-z0-9]{20,}\b'),
+        regex: RegExp(r'\b(?:sk|pk|api|key|token)[_-][A-Za-z0-9_-]{8,}\b'),
         replacement: '[API_KEY HIDDEN]',
         description: 'Common API key formats',
       ),
 
-      // 7. Email addresses.
+      // 7. Email addresses — disallows consecutive dots per RFC 5322.
       PIIPattern(
         type: PIIType.email,
         regex: RegExp(
-          r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b',
+          r'\b[A-Za-z0-9](?:[A-Za-z0-9._%+-]*[A-Za-z0-9])?@[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?\.[A-Za-z]{2,}\b',
         ),
         replacement: '[EMAIL HIDDEN]',
         description: 'Email addresses',
@@ -513,8 +581,17 @@ class PIIDetector {
         replacement: '[DOB HIDDEN]',
         description: 'Dates in MM/DD/YYYY format',
       ),
+      // DD/MM/YYYY (European format).
+      PIIPattern(
+        type: PIIType.dateOfBirth,
+        regex: RegExp(
+          r'\b(?:0[1-9]|[12]\d|3[01])[/](?:0[1-9]|1[0-2])[/](?:19|20)\d{2}\b',
+        ),
+        replacement: '[DOB HIDDEN]',
+        description: 'Dates in DD/MM/YYYY format (European)',
+      ),
 
-      // 9. IP Address (IPv4) — process BEFORE phone to avoid conflicts.
+      // 9a. IP Address (IPv4) — process BEFORE phone to avoid conflicts.
       PIIPattern(
         type: PIIType.ipAddress,
         regex: RegExp(
@@ -523,17 +600,92 @@ class PIIDetector {
         replacement: '[IP HIDDEN]',
         description: 'IPv4 addresses',
       ),
+      // 9b. IP Address (IPv6) — abbreviated and full forms.
+      PIIPattern(
+        type: PIIType.ipAddress,
+        regex: RegExp(
+          r'(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|::(?:[0-9a-fA-F]{1,4}:){0,5}[0-9a-fA-F]{1,4}|[0-9a-fA-F]{1,4}::(?:[0-9a-fA-F]{1,4}:){0,4}[0-9a-fA-F]{1,4})',
+        ),
+        replacement: '[IP HIDDEN]',
+        description: 'IPv6 addresses',
+      ),
 
-      // 10. Phone numbers (international) — after IP to avoid matching IPs.
+      // 10. IBAN — international bank account numbers.
+      PIIPattern(
+        type: PIIType.iban,
+        regex: RegExp(
+          r'\b[A-Z]{2}\d{2}[\s]?[\dA-Z]{4}[\s]?(?:[\dA-Z]{4}[\s]?){1,7}[\dA-Z]{1,4}\b',
+        ),
+        replacement: '[IBAN HIDDEN]',
+        description: 'International Bank Account Numbers',
+      ),
+
+      // 11. UK National Insurance Number.
+      PIIPattern(
+        type: PIIType.ukNin,
+        regex: RegExp(
+          r'\b[A-CEGHJ-PR-TW-Z]{2}[\s-]?\d{2}[\s-]?\d{2}[\s-]?\d{2}[\s-]?[A-D]\b',
+          caseSensitive: false,
+        ),
+        replacement: '[NI NUMBER HIDDEN]',
+        description: 'UK National Insurance Numbers',
+      ),
+
+      // 12. Canadian Social Insurance Number.
+      PIIPattern(
+        type: PIIType.canadianSin,
+        regex: RegExp(r'\b\d{3}[\s-]\d{3}[\s-]\d{3}\b'),
+        replacement: '[SIN HIDDEN]',
+        description: 'Canadian Social Insurance Numbers',
+      ),
+
+      // 13. Passport numbers (common formats: 1-2 letters + 6-9 digits).
+      PIIPattern(
+        type: PIIType.passport,
+        regex: RegExp(r'\b[A-Z]{1,2}\d{6,9}\b'),
+        replacement: '[PASSPORT HIDDEN]',
+        description: 'Passport numbers',
+      ),
+
+      // 14. Phone numbers (international) — after IP to avoid matching IPs.
       PIIPattern(
         type: PIIType.phone,
         regex: RegExp(
-          r'(?:\+\d{1,3}[\s-]?)?(?:\(?\d{2,4}\)?[\s-]?)?(?:\d[\s-]?){6,14}\d\b',
+          r'(?:\+\d{1,3}[\s-]?)(?:\(?\d{2,4}\)?[\s-]?)(?:\d[\s-]?){6,14}\d\b'
+          r'|'
+          r'\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}\b',
         ),
         replacement: '[PHONE HIDDEN]',
         description: 'Phone numbers in various international formats',
+        validator: _phoneValidate,
       ),
     ]);
+  }
+
+  /// Validates a 9-digit SSN (no dashes) by checking area/group rules.
+  ///
+  /// Rejects known invalid SSN patterns: area 000/666/900-999.
+  static bool _ssnNoDashValidate(String match) {
+    if (match.length != 9) return false;
+    final area = int.tryParse(match.substring(0, 3)) ?? 0;
+    final group = int.tryParse(match.substring(3, 5)) ?? 0;
+    final serial = int.tryParse(match.substring(5, 9)) ?? 0;
+    // Invalid SSN area numbers per SSA rules.
+    if (area == 0 || area == 666 || area >= 900) return false;
+    if (group == 0 || serial == 0) return false;
+    return true;
+  }
+
+  /// Validates a phone number match by checking digit count.
+  ///
+  /// Requires 7-15 digits (ITU-T E.164 range) and at least one
+  /// separator or country code prefix to avoid matching plain numbers.
+  static bool _phoneValidate(String match) {
+    final digits = match.replaceAll(RegExp(r'[^\d]'), '');
+    if (digits.length < 7 || digits.length > 15) return false;
+    // Require a separator, parenthesis, or + prefix to distinguish
+    // from plain numeric strings like order IDs.
+    return match.contains(RegExp(r'[+\-()\s.]'));
   }
 
   /// Validates a credit card number using the Luhn algorithm.

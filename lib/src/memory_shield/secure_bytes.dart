@@ -3,8 +3,8 @@ library;
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
-import 'package:flutter/services.dart';
 import 'package:meta/meta.dart';
 
 import 'memory_shield.dart';
@@ -12,6 +12,10 @@ import 'memory_shield.dart';
 /// A secure container for sensitive byte arrays that overwrites on dispose.
 ///
 /// Ideal for encryption keys, binary secrets, and other sensitive byte data.
+///
+/// **Security note:** Each call to [bytes] returns a new copy that is not
+/// tracked or wiped. Prefer [useOnce] to limit the number of copies.
+/// See [SecureString] for additional caveats about Dart VM memory.
 ///
 /// **Important:** You MUST call [dispose] when done, or use [useOnce]
 /// for one-time-use secrets.
@@ -22,7 +26,7 @@ import 'memory_shield.dart';
 /// key.dispose();
 /// // key.bytes now throws StateError
 /// ```
-class SecureBytes {
+class SecureBytes implements SecureDisposable {
   /// Creates a [SecureBytes] containing a copy of the given [bytes].
   ///
   /// ```dart
@@ -91,7 +95,7 @@ class SecureBytes {
   /// ```dart
   /// key.dispose();
   /// ```
-  @mustCallSuper
+  @override
   void dispose() {
     if (_isDisposed) return;
     _isDisposed = true;
@@ -137,9 +141,7 @@ class SecureBytes {
   void _tryPlatformAllocate() {
     if (!MemoryShield().config.enablePlatformWipe) return;
 
-    // ignore: unawaited_futures
-    const MethodChannel('com.neelakandan.flutter_neo_shield/memory')
-        .invokeMethod<void>('allocateSecure', {
+    MemoryShield.channel.invokeMethod<void>('allocateSecure', {
       'id': _id,
       'data': _bytes,
     }).catchError((_) {
@@ -150,9 +152,9 @@ class SecureBytes {
   void _tryPlatformWipe() {
     if (!MemoryShield().config.enablePlatformWipe) return;
 
-    // ignore: unawaited_futures
-    const MethodChannel('com.neelakandan.flutter_neo_shield/memory')
-        .invokeMethod<void>('wipeSecure', {'id': _id}).catchError((_) {
+    MemoryShield.channel.invokeMethod<void>('wipeSecure', {
+      'id': _id,
+    }).catchError((_) {
       // Platform channel unavailable.
     });
   }

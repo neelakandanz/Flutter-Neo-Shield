@@ -48,10 +48,16 @@ class DioShieldInterceptor extends Interceptor {
   }) : sensitiveHeaders = sensitiveHeaders ??
             const [
               'authorization',
+              'proxy-authorization',
+              'www-authenticate',
               'cookie',
               'set-cookie',
               'x-api-key',
               'x-auth-token',
+              'x-access-token',
+              'x-refresh-token',
+              'x-api-secret',
+              'x-csrf-token',
             ];
 
   /// Optional custom log function. Defaults to [shieldLog].

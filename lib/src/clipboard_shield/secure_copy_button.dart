@@ -115,7 +115,9 @@ class _SecureCopyButtonState extends State<SecureCopyButton> {
       );
       overlay.insert(entry);
       await Future<void>.delayed(widget.snackBarDuration);
-      entry.remove();
+      if (mounted) {
+        entry.remove();
+      }
     } else if (widget.showSnackBar) {
       final expiry =
           widget.expireAfter ?? ClipboardShield().config.defaultExpiry;

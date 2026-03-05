@@ -3,8 +3,8 @@ library;
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
-import 'package:flutter/services.dart';
 import 'package:meta/meta.dart';
 
 import 'memory_shield.dart';
@@ -13,6 +13,16 @@ import 'memory_shield.dart';
 ///
 /// Since Dart strings are immutable, the string is stored as UTF-8 encoded
 /// bytes in a [Uint8List] which can be overwritten with zeros.
+///
+/// **Security note:** The Dart VM's garbage collector may copy or relocate
+/// byte arrays in memory. While [dispose] zero-fills the current buffer,
+/// previous GC copies cannot be wiped from Dart. On Android/iOS the native
+/// platform channel provides stronger guarantees. On other platforms (Web,
+/// desktop) the wipe is best-effort only.
+///
+/// To minimise leakage, prefer [useOnce] over repeated [value] access,
+/// because every call to [value] creates a new immutable Dart [String]
+/// that cannot be wiped.
 ///
 /// **Important:** You MUST call [dispose] when done, or use [useOnce]
 /// for one-time-use secrets.
@@ -23,7 +33,7 @@ import 'memory_shield.dart';
 /// secret.dispose();
 /// // secret.value now throws StateError
 /// ```
-class SecureString {
+class SecureString implements SecureDisposable {
   /// Creates a [SecureString] containing the given [value].
   ///
   /// Optionally set [maxAge] to auto-dispose after a duration.
@@ -89,7 +99,7 @@ class SecureString {
   /// ```dart
   /// secret.dispose();
   /// ```
-  @mustCallSuper
+  @override
   void dispose() {
     if (_isDisposed) return;
     _isDisposed = true;
@@ -133,22 +143,27 @@ class SecureString {
     if (_isDisposed) {
       throw StateError('SecureString has been disposed');
     }
-    final otherBytes = utf8.encode(other);
-    if (_bytes.length != otherBytes.length) return false;
+    final otherBytes = Uint8List.fromList(utf8.encode(other));
+    try {
+      if (_bytes.length != otherBytes.length) return false;
 
-    var result = 0;
-    for (var i = 0; i < _bytes.length; i++) {
-      result |= _bytes[i] ^ otherBytes[i];
+      var result = 0;
+      for (var i = 0; i < _bytes.length; i++) {
+        result |= _bytes[i] ^ otherBytes[i];
+      }
+      return result == 0;
+    } finally {
+      // Wipe the comparison bytes to reduce leakage.
+      for (var i = 0; i < otherBytes.length; i++) {
+        otherBytes[i] = 0;
+      }
     }
-    return result == 0;
   }
 
   void _tryPlatformAllocate() {
     if (!MemoryShield().config.enablePlatformWipe) return;
 
-    // ignore: unawaited_futures
-    const MethodChannel('com.neelakandan.flutter_neo_shield/memory')
-        .invokeMethod<void>('allocateSecure', {
+    MemoryShield.channel.invokeMethod<void>('allocateSecure', {
       'id': _id,
       'data': _bytes,
     }).catchError((_) {
@@ -159,9 +174,9 @@ class SecureString {
   void _tryPlatformWipe() {
     if (!MemoryShield().config.enablePlatformWipe) return;
 
-    // ignore: unawaited_futures
-    const MethodChannel('com.neelakandan.flutter_neo_shield/memory')
-        .invokeMethod<void>('wipeSecure', {'id': _id}).catchError((_) {
+    MemoryShield.channel.invokeMethod<void>('wipeSecure', {
+      'id': _id,
+    }).catchError((_) {
       // Platform channel unavailable — Dart-side wipe already done.
     });
   }

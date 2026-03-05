@@ -16,21 +16,23 @@ library;
 class LogShieldConfig {
   /// Creates a [LogShieldConfig] with the specified options.
   const LogShieldConfig({
-    this.sanitizeInDebug = false,
+    this.sanitizeInDebug = true,
     this.silentInRelease = true,
     this.silentInProfile = false,
     this.showRedactionNotice = false,
     this.outputHandler,
-    this.timestampFormat,
+    this.showTimestamp = false,
     this.enabledLevels = const {},
   });
 
   /// Whether to sanitize (hide PII) in debug mode.
   ///
-  /// - `false` (default): During development, `shieldLog()` shows all real
-  ///   values for easy debugging. No PII is hidden.
-  /// - `true`: PII is hidden even in debug mode (useful for screenshots,
-  ///   screen recordings, or team demos).
+  /// - `true` (default): PII is hidden in all modes including debug.
+  ///   This is the safe default — screenshots, screen recordings, CI
+  ///   logs, and shared consoles will not contain real PII.
+  /// - `false`: During development, `shieldLog()` shows all real values
+  ///   for easy debugging. Only set this when you need to see raw data
+  ///   locally and understand the risk.
   ///
   /// In **release mode**, logs are always sanitized (or silenced if
   /// [silentInRelease] is true). This flag only affects debug/development.
@@ -57,10 +59,11 @@ class LogShieldConfig {
   /// ```
   final void Function(String sanitizedMessage, String level)? outputHandler;
 
-  /// Optional timestamp format string to prepend to log lines.
+  /// Whether to prepend a timestamp to each log line.
   ///
-  /// If set, each log line will be prefixed with the current timestamp.
-  final String? timestampFormat;
+  /// When true, each log line is prefixed with the current time in
+  /// ISO 8601 format.
+  final bool showTimestamp;
 
   /// Set of log levels to output. Empty set means all levels are enabled.
   ///

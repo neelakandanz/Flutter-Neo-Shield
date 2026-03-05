@@ -146,17 +146,19 @@ void main() {
         expect(result, 'Hello [NAME HIDDEN] [NAME HIDDEN]');
       });
 
-      test('matches short names with 2+ characters', () {
-        PIIDetector().registerName('Jo');
-        final result = PIIDetector().sanitize('Hello Jo');
+      test('matches short names with 3+ characters', () {
+        PIIDetector().registerName('Joe');
+        final result = PIIDetector().sanitize('Hello Joe');
         expect(result, contains('[NAME HIDDEN]'));
-        expect(result, isNot(contains(' Jo')));
+        expect(result, isNot(contains(' Joe')));
       });
 
-      test('does NOT match single character names', () {
+      test('does NOT match 1-2 character names', () {
         PIIDetector().registerName('A');
-        final result = PIIDetector().sanitize('Hello A friend');
-        expect(result, 'Hello A friend');
+        PIIDetector().registerName('Jo');
+        final result = PIIDetector().sanitize('Hello A and Jo friend');
+        expect(result, contains(' A '));
+        expect(result, contains(' Jo '));
       });
     });
 

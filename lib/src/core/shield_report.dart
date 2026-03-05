@@ -1,6 +1,8 @@
 /// Detection statistics tracker for flutter_neo_shield.
 library;
 
+import 'dart:collection';
+
 import 'pii_type.dart';
 
 /// A detection event record containing the type and timestamp.
@@ -48,7 +50,7 @@ class ShieldReport {
   int _totalDetections = 0;
   final Map<PIIType, int> _countsByType = {};
   DateTime? _lastDetectionTimestamp;
-  final List<DetectionEvent> _recentEvents = [];
+  final Queue<DetectionEvent> _recentEvents = Queue<DetectionEvent>();
 
   /// Maximum number of recent events to keep.
   static const int maxRecentEvents = 100;
@@ -63,7 +65,8 @@ class ShieldReport {
   DateTime? get lastDetectionTimestamp => _lastDetectionTimestamp;
 
   /// The most recent detection events (up to [maxRecentEvents]).
-  List<DetectionEvent> get recentEvents => List.unmodifiable(_recentEvents);
+  List<DetectionEvent> get recentEvents =>
+      List.unmodifiable(_recentEvents.toList());
 
   /// Records a detection event for the given [type].
   ///
@@ -85,7 +88,7 @@ class ShieldReport {
     );
     _recentEvents.add(event);
     if (_recentEvents.length > maxRecentEvents) {
-      _recentEvents.removeAt(0);
+      _recentEvents.removeFirst();
     }
   }
 

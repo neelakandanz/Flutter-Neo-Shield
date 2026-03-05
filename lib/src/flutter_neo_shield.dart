@@ -32,6 +32,7 @@ class FlutterNeoShield {
   FlutterNeoShield._();
 
   static bool _initialized = false;
+  static bool _warnedAboutInit = false;
 
   /// Whether [init] has been called.
   ///
@@ -39,6 +40,22 @@ class FlutterNeoShield {
   /// if (FlutterNeoShield.isInitialized) { ... }
   /// ```
   static bool get isInitialized => _initialized;
+
+  /// Logs a one-time warning if modules are used before [init].
+  static void _warnIfNotInitialized() {
+    if (!_initialized && !_warnedAboutInit) {
+      _warnedAboutInit = true;
+      assert(() {
+        // ignore: avoid_print
+        print(
+          '[flutter_neo_shield] WARNING: FlutterNeoShield.init() has not '
+          'been called. Modules are running with default configuration. '
+          'Call FlutterNeoShield.init() in main() before runApp().',
+        );
+        return true;
+      }());
+    }
+  }
 
   /// Initializes all flutter_neo_shield modules with optional configuration.
   ///
@@ -89,35 +106,50 @@ class FlutterNeoShield {
   /// FlutterNeoShield.detector.registerName('John');
   /// FlutterNeoShield.detector.sanitize('Hello John');
   /// ```
-  static PIIDetector get detector => PIIDetector();
+  static PIIDetector get detector {
+    _warnIfNotInitialized();
+    return PIIDetector();
+  }
 
   /// Access the LogShield module.
   ///
   /// ```dart
   /// FlutterNeoShield.log.log('message');
   /// ```
-  static LogShield get log => LogShield();
+  static LogShield get log {
+    _warnIfNotInitialized();
+    return LogShield();
+  }
 
   /// Access the ClipboardShield module.
   ///
   /// ```dart
   /// await FlutterNeoShield.clipboard.copy('text');
   /// ```
-  static ClipboardShield get clipboard => ClipboardShield();
+  static ClipboardShield get clipboard {
+    _warnIfNotInitialized();
+    return ClipboardShield();
+  }
 
   /// Access the MemoryShield module.
   ///
   /// ```dart
   /// FlutterNeoShield.memory.disposeAll();
   /// ```
-  static MemoryShield get memory => MemoryShield();
+  static MemoryShield get memory {
+    _warnIfNotInitialized();
+    return MemoryShield();
+  }
 
   /// Access the StringShield module.
   ///
   /// ```dart
   /// FlutterNeoShield.stringShield.clearCache();
   /// ```
-  static StringShield get stringShield => StringShield();
+  static StringShield get stringShield {
+    _warnIfNotInitialized();
+    return StringShield();
+  }
 
   /// Access the detection report, or null if reporting is disabled.
   ///
@@ -140,5 +172,6 @@ class FlutterNeoShield {
     MemoryShield().reset();
     StringShield().reset();
     _initialized = false;
+    _warnedAboutInit = false;
   }
 }

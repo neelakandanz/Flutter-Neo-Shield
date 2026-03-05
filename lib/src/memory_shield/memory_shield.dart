@@ -6,6 +6,12 @@ import 'package:flutter/widgets.dart';
 
 import 'memory_shield_config.dart';
 
+/// Interface for objects that can be securely disposed by [MemoryShield].
+abstract class SecureDisposable {
+  /// Wipes sensitive data and marks this container as disposed.
+  void dispose();
+}
+
 /// Singleton manager that tracks all active secure containers and can mass-wipe.
 ///
 /// Tracks [SecureString], [SecureBytes], and [SecureValue] instances and
@@ -29,11 +35,10 @@ class MemoryShield with WidgetsBindingObserver {
   static final MemoryShield _instance = MemoryShield._internal();
 
   MemoryShieldConfig _config = const MemoryShieldConfig();
-  final Set<dynamic> _activeContainers = {};
+  final Set<SecureDisposable> _activeContainers = {};
   bool _isBound = false;
 
   /// The method channel for native memory operations.
-  @visibleForTesting
   static const MethodChannel channel =
       MethodChannel('com.neelakandan.flutter_neo_shield/memory');
 
@@ -56,14 +61,14 @@ class MemoryShield with WidgetsBindingObserver {
   ///
   /// Called internally by [SecureString], [SecureBytes], and [SecureValue]
   /// constructors.
-  void register(dynamic secureContainer) {
+  void register(SecureDisposable secureContainer) {
     _activeContainers.add(secureContainer);
   }
 
   /// Unregisters a secure container from tracking.
   ///
   /// Called internally on dispose.
-  void unregister(dynamic secureContainer) {
+  void unregister(SecureDisposable secureContainer) {
     _activeContainers.remove(secureContainer);
   }
 
@@ -83,10 +88,9 @@ class MemoryShield with WidgetsBindingObserver {
   /// ```
   void disposeAll() {
     // Copy the set since dispose() modifies it via unregister().
-    final containers = Set<dynamic>.from(_activeContainers);
+    final containers = Set<SecureDisposable>.from(_activeContainers);
     for (final container in containers) {
       try {
-        // ignore: avoid_dynamic_calls
         container.dispose();
       } catch (_) {
         // Container may already be disposed.
@@ -132,7 +136,6 @@ class MemoryShield with WidgetsBindingObserver {
   void _tryPlatformWipeAll() {
     if (!_config.enablePlatformWipe) return;
 
-    // ignore: unawaited_futures
     channel.invokeMethod<void>('wipeAll').catchError((_) {
       // Platform channel unavailable — ignore.
     });

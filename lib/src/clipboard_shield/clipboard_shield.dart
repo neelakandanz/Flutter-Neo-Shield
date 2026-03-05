@@ -4,6 +4,7 @@ library;
 import 'dart:async';
 
 import 'package:flutter/services.dart';
+import 'package:meta/meta.dart';
 
 import '../core/pii_detector.dart';
 import '../log_shield/safe_log.dart';
@@ -139,7 +140,7 @@ class ClipboardShield {
 
       if (_config.logCopyEvents) {
         shieldLog(
-          'Clipboard: copied text (PII: $piiDetected, type: ${piiType?.name ?? 'none'})',
+          'Clipboard: copied text (containsPII: $piiDetected)',
           level: 'DEBUG',
         );
       }
@@ -185,9 +186,13 @@ class ClipboardShield {
 
   /// Cancels any pending auto-clear timer.
   ///
+  /// Use with caution — cancelling the timer means sensitive data will
+  /// remain on the clipboard until the next [copy] or [clearNow] call.
+  ///
   /// ```dart
   /// ClipboardShield().cancelAutoClear();
   /// ```
+  @visibleForTesting
   void cancelAutoClear() {
     _autoClearTimer?.cancel();
     _autoClearTimer = null;

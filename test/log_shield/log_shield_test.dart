@@ -267,7 +267,7 @@ void main() {
     });
 
     group('sanitizeInDebug flag', () {
-      test('when false (default), PII is NOT hidden in debug mode', () {
+      test('when false, PII is NOT hidden in debug mode', () {
         String? capturedMessage;
 
         LogShield().init(LogShieldConfig(

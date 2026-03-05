@@ -61,22 +61,20 @@ You replace `print()` with `shieldLog()`. It gives you structured, PII-safe logg
 ```dart
 shieldLog('User logged in: john@gmail.com with token: Bearer sk-abc123');
 
-// DURING DEVELOPMENT (debug mode) — you see everything, for easy debugging:
-// → [INFO] User logged in: john@gmail.com with token: Bearer sk-abc123
-
-// IN PRODUCTION (release mode) — PII is automatically hidden:
+// BY DEFAULT — PII is hidden in all modes (debug + release):
 // → [INFO] User logged in: [EMAIL HIDDEN] with token: Bearer [TOKEN HIDDEN]
 ```
 
 **You don't need to change any code between dev and production.** Just use
 `shieldLog()` everywhere instead of `print()`, and it handles both modes.
 
-> **Note:** If you want sanitization even during development (e.g., for screenshots
-> or screen recordings), set `sanitizeInDebug: true`:
+> **Note:** If you want to see real values during development (e.g., for local
+> debugging), set `sanitizeInDebug: false`:
 > ```dart
 > FlutterNeoShield.init(
->   logConfig: LogShieldConfig(sanitizeInDebug: true),
+>   logConfig: LogShieldConfig(sanitizeInDebug: false),
 > );
+> // Debug output: [INFO] User logged in: john@gmail.com (real value!)
 > ```
 
 **What it auto-detects and hides (in release mode):**
@@ -252,20 +250,23 @@ It detects these hostile environments so you can restrict features, clear sensit
 import 'package:flutter_neo_shield/rasp_shield.dart';
 
 // Perform a full security scan on startup:
-final report = await RaspShield.fullSecurityScan();
+// In strict mode, throws SecurityException if any threat is detected.
+final report = await RaspShield.fullSecurityScan(mode: SecurityMode.strict);
 
+// Or use warn mode to log threats and continue:
+final report = await RaspShield.fullSecurityScan(mode: SecurityMode.warn);
+
+// Or silent mode with manual handling:
+final report = await RaspShield.fullSecurityScan();
 if (!report.isSafe) {
   print('SECURITY WARNING: Unsafe environment detected!');
-  
+
   if (report.debuggerDetected) print('Debugger attached!');
   if (report.rootDetected) print('Device is rooted/jailbroken!');
   if (report.emulatorDetected) print('Running on emulator!');
   if (report.fridaDetected) print('Frida instrumentation detected!');
   if (report.hookDetected) print('Hooking framework (Substrate/Xposed) detected!');
   if (report.integrityTampered) print('App binary was tampered/sideloaded!');
-  
-  // Example: exit the app or force logout
-  // exit(0);
 }
 ```
 
@@ -285,7 +286,7 @@ if ((await RaspShield.checkFrida()).isDetected) {
 
 ```yaml
 dependencies:
-  flutter_neo_shield: ^0.4.2
+  flutter_neo_shield: ^0.5.0
 ```
 
 **Step 2:** Run:
@@ -378,7 +379,7 @@ A: **No.** You need to replace `print()` with `shieldLog()` in your code. It's a
 
 **Q: But if `shieldLog()` hides data, how do I debug during development?**
 
-A: It **doesn't** hide data during development! By default, `shieldLog()` shows all real values in debug mode. Sanitization only kicks in automatically in release builds. You write the code once, and it does the right thing in each mode.
+A: By default (v0.5.0+), `shieldLog()` hides PII in all modes for safety. To see real values during local development, set `sanitizeInDebug: false` in your `LogShieldConfig`. You write the code once, and it does the right thing in each mode.
 
 **Q: Do I need to use all 5 modules?**
 
@@ -448,7 +449,7 @@ FlutterNeoShield.init(
     autoDisposeOnBackground: true,  // Wipe all secrets when app goes to background
   ),
   stringShieldConfig: StringShieldConfig(
-    enableCache: true,   // Cache decrypted strings for performance
+    enableCache: false,  // Set true to cache decrypted strings (faster but less secure)
     enableStats: false,  // Track deobfuscation counts (off by default)
   ),
 );

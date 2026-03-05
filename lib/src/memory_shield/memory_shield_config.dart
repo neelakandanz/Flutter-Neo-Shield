@@ -23,6 +23,10 @@ class MemoryShieldConfig {
 
   /// If true, all secure containers are disposed when the app backgrounds.
   ///
+  /// **Warning:** This is aggressive — even a brief app switch (e.g., to
+  /// check a 2FA code) will wipe all secrets. The app will need to
+  /// re-authenticate or re-fetch secrets when the user returns.
+  ///
   /// Requires calling [MemoryShield.bindToLifecycle] to register the
   /// lifecycle observer.
   final bool autoDisposeOnBackground;

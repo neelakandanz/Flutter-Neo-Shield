@@ -41,6 +41,18 @@ enum PIIType {
   /// Common API key formats (sk-, pk-, api-, etc.).
   apiKey,
 
+  /// International Bank Account Numbers (IBAN).
+  iban,
+
+  /// UK National Insurance Numbers (e.g., AB 12 34 56 C).
+  ukNin,
+
+  /// Canadian Social Insurance Numbers (e.g., 123-456-789).
+  canadianSin,
+
+  /// Passport numbers (common formats).
+  passport,
+
   /// Dynamically registered person names.
   name,
 
@@ -74,6 +86,14 @@ enum PIIType {
         return 'Password Field';
       case PIIType.apiKey:
         return 'API Key';
+      case PIIType.iban:
+        return 'IBAN';
+      case PIIType.ukNin:
+        return 'UK NI Number';
+      case PIIType.canadianSin:
+        return 'Canadian SIN';
+      case PIIType.passport:
+        return 'Passport';
       case PIIType.name:
         return 'Name';
       case PIIType.custom:
@@ -118,6 +138,10 @@ class PIIMatch {
   /// The replacement text that will be substituted for the match.
   final String replacement;
 
+  /// Returns a string representation without exposing [original].
+  ///
+  /// The original matched text is intentionally omitted to prevent
+  /// accidental PII leaks when logging or printing match results.
   @override
   String toString() =>
       'PIIMatch(type: $type, start: $start, end: $end, replacement: $replacement)';

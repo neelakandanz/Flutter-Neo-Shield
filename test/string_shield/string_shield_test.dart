@@ -18,7 +18,7 @@ void main() {
         StringShield().config.defaultStrategy,
         equals(ObfuscationStrategy.xor),
       );
-      expect(StringShield().config.enableCache, isTrue);
+      expect(StringShield().config.enableCache, isFalse);
       expect(StringShield().config.enableStats, isFalse);
     });
 
@@ -144,7 +144,7 @@ void main() {
         StringShield().config.defaultStrategy,
         equals(ObfuscationStrategy.xor),
       );
-      expect(StringShield().config.enableCache, isTrue);
+      expect(StringShield().config.enableCache, isFalse);
       expect(StringShield().config.enableStats, isFalse);
     });
   });
@@ -153,7 +153,7 @@ void main() {
     test('has sensible defaults', () {
       const config = StringShieldConfig();
       expect(config.defaultStrategy, equals(ObfuscationStrategy.xor));
-      expect(config.enableCache, isTrue);
+      expect(config.enableCache, isFalse);
       expect(config.enableStats, isFalse);
     });
 
@@ -166,7 +166,7 @@ void main() {
 
       expect(updated.enableStats, isTrue);
       expect(updated.defaultStrategy, equals(ObfuscationStrategy.split));
-      expect(updated.enableCache, isTrue); // unchanged
+      expect(updated.enableCache, isFalse); // unchanged
     });
 
     test('copyWith with no args returns equivalent config', () {
