@@ -22,6 +22,7 @@ void main() {
       'checkFrida': false,
       'checkHooks': false,
       'checkIntegrity': false,
+      'checkDeveloperMode': false,
     };
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -68,6 +69,20 @@ void main() {
       final result = await RaspShield.checkIntegrity();
       expect(result.isDetected, isFalse);
     });
+
+    test('checkDeveloperMode returns SecurityResult when not detected',
+        () async {
+      final result = await RaspShield.checkDeveloperMode();
+      expect(result, isA<SecurityResult>());
+      expect(result.isDetected, isFalse);
+    });
+
+    test('checkDeveloperMode returns detected when enabled', () async {
+      nativeResults['checkDeveloperMode'] = true;
+      final result = await RaspShield.checkDeveloperMode();
+      expect(result.isDetected, isTrue);
+      expect(result.message, isNotNull);
+    });
   });
 
   group('fullSecurityScan', () {
@@ -80,6 +95,7 @@ void main() {
       expect(report.fridaDetected, isFalse);
       expect(report.hookDetected, isFalse);
       expect(report.integrityTampered, isFalse);
+      expect(report.developerModeDetected, isFalse);
     });
 
     test('returns unsafe report when threat detected', () async {
@@ -158,6 +174,14 @@ void main() {
       expect(report.emulatorDetected, isFalse);
       expect(report.hookDetected, isFalse);
       expect(report.integrityTampered, isFalse);
+      expect(report.developerModeDetected, isFalse);
+    });
+
+    test('developerModeDetected reported correctly in full scan', () async {
+      nativeResults['checkDeveloperMode'] = true;
+      final report = await RaspShield.fullSecurityScan();
+      expect(report.isSafe, isFalse);
+      expect(report.developerModeDetected, isTrue);
     });
   });
 
@@ -194,6 +218,7 @@ void main() {
       expect(str, contains('safe: false'));
       expect(str, contains('debugger: true'));
       expect(str, contains('frida: true'));
+      expect(str, contains('developerMode: false'));
     });
 
     test('isSafe is true when all false', () {
@@ -218,6 +243,20 @@ void main() {
         integrityTampered: true,
       );
       expect(report.isSafe, isFalse);
+    });
+
+    test('isSafe is false when only developerModeDetected is true', () {
+      const report = SecurityReport(
+        debuggerDetected: false,
+        rootDetected: false,
+        emulatorDetected: false,
+        fridaDetected: false,
+        hookDetected: false,
+        integrityTampered: false,
+        developerModeDetected: true,
+      );
+      expect(report.isSafe, isFalse);
+      expect(report.developerModeDetected, isTrue);
     });
   });
 

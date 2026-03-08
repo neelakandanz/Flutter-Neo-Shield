@@ -32,6 +32,7 @@ class SecurityReport {
     required this.fridaDetected,
     required this.hookDetected,
     required this.integrityTampered,
+    this.developerModeDetected = false,
   });
 
   /// True if a debugger is attached
@@ -52,6 +53,9 @@ class SecurityReport {
   /// True if the app source or binary signature appears tampered
   final bool integrityTampered;
 
+  /// True if Developer Options (Android) or Developer Mode (iOS 16+) is enabled
+  final bool developerModeDetected;
+
   /// Represents the complete safety state. Returns true if NO threats are detected.
   bool get isSafe =>
       !debuggerDetected &&
@@ -59,10 +63,11 @@ class SecurityReport {
       !emulatorDetected &&
       !fridaDetected &&
       !hookDetected &&
-      !integrityTampered;
+      !integrityTampered &&
+      !developerModeDetected;
 
   @override
   String toString() {
-    return 'SecurityReport(safe: $isSafe, debugger: $debuggerDetected, root: $rootDetected, emulator: $emulatorDetected, frida: $fridaDetected, hooks: $hookDetected, integrity: $integrityTampered)';
+    return 'SecurityReport(safe: $isSafe, debugger: $debuggerDetected, root: $rootDetected, emulator: $emulatorDetected, frida: $fridaDetected, hooks: $hookDetected, integrity: $integrityTampered, developerMode: $developerModeDetected)';
   }
 }

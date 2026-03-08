@@ -29,7 +29,7 @@ If any of this data leaks (through logs, clipboard, or memory), it's a security 
 | **Clipboard Shield** | When users copy sensitive text, it auto-deletes from clipboard after X seconds |
 | **Memory Shield** | Stores secrets as bytes and overwrites them with zeros when you're done |
 | **String Shield** | Encrypts string literals at compile time so they can't be extracted from your binary with `strings` |
-| **RASP Shield** | Detects Root, Jailbreak, Debugger, Emulator, Frida, and Tampering at runtime to block attackers |
+| **RASP Shield** | Detects Root, Jailbreak, Debugger, Emulator, Frida, Developer Mode, and Tampering at runtime to block attackers |
 | **Screen Shield** | Blocks screenshots, screen recording, and app-switcher thumbnails from capturing sensitive screens |
 
 ---
@@ -274,6 +274,7 @@ if (!report.isSafe) {
   if (report.fridaDetected) print('Frida instrumentation detected!');
   if (report.hookDetected) print('Hooking framework (Substrate/Xposed) detected!');
   if (report.integrityTampered) print('App binary was tampered/sideloaded!');
+  if (report.developerModeDetected) print('Developer Options / Developer Mode is enabled!');
 }
     // Exit the app
     _terminateApp();
@@ -401,7 +402,7 @@ FlutterNeoShield.screen.onRecordingStateChanged.listen((event) {
 
 ```yaml
 dependencies:
-  flutter_neo_shield: ^0.6.0
+  flutter_neo_shield: ^0.7.0
 ```
 
 **Step 2:** Run:

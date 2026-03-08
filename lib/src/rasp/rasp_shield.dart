@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 
 import 'debugger_detector.dart';
+import 'developer_mode_detector.dart';
 import 'emulator_detector.dart';
 import 'frida_detector.dart';
 import 'hook_detector.dart';
@@ -34,6 +35,10 @@ class RaspShield {
   /// Checks application binary integrity against tampering.
   static Future<SecurityResult> checkIntegrity() => IntegrityDetector.check();
 
+  /// Checks if Developer Options (Android) or Developer Mode (iOS 16+) is enabled.
+  static Future<SecurityResult> checkDeveloperMode() =>
+      DeveloperModeDetector.check();
+
   /// Perform a full security scan returning all results.
   ///
   /// All checks run in parallel to minimise the TOCTOU window
@@ -54,6 +59,7 @@ class RaspShield {
       checkFrida(),
       checkHooks(),
       checkIntegrity(),
+      checkDeveloperMode(),
     ]);
 
     final report = SecurityReport(
@@ -63,6 +69,7 @@ class RaspShield {
       fridaDetected: results[3].isDetected,
       hookDetected: results[4].isDetected,
       integrityTampered: results[5].isDetected,
+      developerModeDetected: results[6].isDetected,
     );
 
     if (!report.isSafe) {

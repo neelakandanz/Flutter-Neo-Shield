@@ -124,6 +124,15 @@ class FlutterNeoShieldPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                     result.success(true)
                 }
             }
+            "checkDeveloperMode" -> {
+                val context = applicationContext
+                if (context != null) {
+                    result.success(com.neelakandan.flutter_neo_shield.rasp.DeveloperModeDetector().check(context))
+                } else {
+                    // Fail closed: report as detected when context unavailable.
+                    result.success(true)
+                }
+            }
 
             // Screen Shield
             "enableScreenProtection" -> {

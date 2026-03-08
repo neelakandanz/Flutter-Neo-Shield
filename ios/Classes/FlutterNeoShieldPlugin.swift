@@ -96,6 +96,9 @@ public class FlutterNeoShieldPlugin: NSObject, FlutterPlugin {
         case "checkIntegrity":
             result(IntegrityDetector.check())
 
+        case "checkDeveloperMode":
+            result(DeveloperModeDetector.check())
+
         // Screen Shield
         case "enableScreenProtection":
             let window = UIApplication.shared.windows.first { $0.isKeyWindow }

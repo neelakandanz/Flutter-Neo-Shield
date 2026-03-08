@@ -1,3 +1,18 @@
+## 0.7.0
+
+### New RASP Check: Developer Mode Detection
+
+* **New check:** `RaspShield.checkDeveloperMode()` detects whether Developer Options (Android) or Developer Mode (iOS 16+) is enabled on the device.
+* **Android:** Reads `Settings.Global.DEVELOPMENT_SETTINGS_ENABLED` via `ContentResolver`. Returns `true` when Developer Options is turned on — the same check used by banking apps (Google Pay, PhonePe, Paytm) to detect elevated device privileges.
+* **iOS 16+:** Uses filesystem and framework heuristics to detect when Developer Mode (Settings → Privacy & Security → Developer Mode) is enabled. Returns `false` on iOS < 16 where the toggle did not exist.
+* **New Dart class:** `DeveloperModeDetector` in `lib/src/rasp/developer_mode_detector.dart`.
+* **New native classes:** `DeveloperModeDetector.kt` (Android), `DeveloperModeDetector.swift` (iOS).
+* **SecurityReport updated:** New `developerModeDetected` field (default `false`) — zero breaking changes for existing callers.
+* **Included in `fullSecurityScan()`:** The 7th parallel check is now part of the full RASP scan.
+* **Tests:** New test cases for individual check, full scan integration, and SecurityReport validation.
+
+---
+
 ## 0.6.0
 
 ### New Module: Screen Shield — Anti-Screenshot & Screen Recording Prevention
