@@ -568,7 +568,8 @@ class PIIDetector {
       // 6. API Key — common prefixed formats requiring at least one digit.
       PIIPattern(
         type: PIIType.apiKey,
-        regex: RegExp(r'\b(?:sk|pk|api|key|token)[_-][A-Za-z0-9_-]*\d[A-Za-z0-9_-]*\b'),
+        regex: RegExp(
+            r'\b(?:sk|pk|api|key|token)[_-][A-Za-z0-9_-]*\d[A-Za-z0-9_-]*\b'),
         replacement: '[API_KEY HIDDEN]',
         description: 'Common API key formats',
         validator: _apiKeyValidate,

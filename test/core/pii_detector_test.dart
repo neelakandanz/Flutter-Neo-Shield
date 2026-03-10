@@ -396,7 +396,8 @@ void main() {
 
     group('International PII patterns', () {
       test('detects IBAN', () {
-        final result = PIIDetector().sanitize('IBAN: GB29 NWBK 6016 1331 9268 19');
+        final result =
+            PIIDetector().sanitize('IBAN: GB29 NWBK 6016 1331 9268 19');
         expect(result, contains('[IBAN HIDDEN]'));
       });
 

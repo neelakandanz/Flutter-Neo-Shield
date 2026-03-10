@@ -75,7 +75,8 @@ void main() {
       expect(result, isTrue); // fail-closed default
     });
 
-    test('invokeDetection returns false when fail-open on MissingPluginException',
+    test(
+        'invokeDetection returns false when fail-open on MissingPluginException',
         () async {
       RaspChannel.configure(failClosed: false);
       final result = await RaspChannel.invokeDetection('checkDebugger');

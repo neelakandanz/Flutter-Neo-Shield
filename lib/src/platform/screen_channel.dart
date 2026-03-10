@@ -126,8 +126,7 @@ class ScreenChannel {
   /// Query whether the screen is currently being recorded.
   static Future<bool> isScreenBeingRecorded() async {
     try {
-      final result =
-          await _channel.invokeMethod<bool>('isScreenBeingRecorded');
+      final result = await _channel.invokeMethod<bool>('isScreenBeingRecorded');
       return result ?? false;
     } on MissingPluginException {
       return false;
