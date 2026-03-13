@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'flutter_neo_shield'
-  s.version          = '0.2.0'
+  s.version          = '0.9.0'
   s.summary          = 'Client-side PII protection toolkit for Flutter.'
   s.description      = <<-DESC
   Client-side PII protection toolkit for Flutter — auto-scrubs sensitive data

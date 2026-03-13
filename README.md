@@ -29,8 +29,8 @@ If any of this data leaks (through logs, clipboard, or memory), it's a security 
 | **Clipboard Shield** | When users copy sensitive text, it auto-deletes from clipboard after X seconds |
 | **Memory Shield** | Stores secrets as bytes and overwrites them with zeros when you're done |
 | **String Shield** | Encrypts string literals at compile time so they can't be extracted from your binary with `strings` |
-| **RASP Shield** | Detects Root, Jailbreak, Debugger, Native Debugger, Emulator, Frida, Developer Mode, Tampering, Signature Repackaging, and Proxy/VPN (MITM) at runtime to block attackers |
-| **Screen Shield** | Blocks screenshots, screen recording, and app-switcher thumbnails from capturing sensitive screens |
+| **RASP Shield** | Detects Root, Jailbreak, Debugger, Native Debugger, Emulator, Frida, Developer Mode, Tampering, Signature Repackaging, and Proxy/VPN (MITM) at runtime — native on all 6 platforms |
+| **Screen Shield** | Blocks screenshots, screen recording, and app-switcher thumbnails — native OS-level protection on all 6 platforms |
 
 ---
 
@@ -310,6 +310,10 @@ print('My signing cert SHA-256: $hash');
 
 **What it detects (Android):** Debug certificates, multiple signers, certificate hash mismatch.
 **What it detects (iOS):** Missing/corrupt CodeResources, `get-task-allow` entitlement, `DYLD_INSERT_LIBRARIES` injection.
+**What it detects (macOS):** `SecCodeCopySelf` + `SecStaticCodeCheckValidity`, DYLD environment variables, `get-task-allow` entitlement, re-sign indicators.
+**What it detects (Windows):** `WinVerifyTrust` Authenticode verification, PE image checksum validation, `CryptQueryObject` certificate chain and self-signed detection.
+**What it detects (Linux):** ELF magic verification, `LD_PRELOAD`/`LD_LIBRARY_PATH`/`LD_AUDIT` injection detection.
+**What it detects (Web):** `Function.prototype.bind` / `Object.prototype.toString` tampering (prototype monkey-patching).
 
 #### Native Debugger Detection
 
@@ -323,6 +327,10 @@ if ((await RaspShield.checkNativeDebug()).isDetected) {
 
 **Android:** `/proc/self/status` TracerPid, `/proc/self/wchan` ptrace_stop, timing anomaly.
 **iOS:** Mach exception port enumeration, timing anomaly, `PT_DENY_ATTACH` support.
+**macOS:** `ptrace(PT_DENY_ATTACH)`, `sysctl P_TRACED`, `task_get_exception_ports`, parent process check, timing anomaly.
+**Windows:** `NtQueryInformationProcess(ProcessDebugPort/ProcessDebugObjectHandle)`, DR0-DR3 hardware breakpoint registers, timing anomaly.
+**Linux:** `/proc/self/status` TracerPid, `PTRACE_TRACEME`, `/proc/self/wchan`, timing anomaly.
+**Web:** Computation timing anomaly detection (debugger stepping causes measurable delays).
 
 #### Proxy & VPN Detection (Anti-MITM)
 
@@ -336,6 +344,10 @@ if ((await RaspShield.checkNetworkThreats()).isDetected) {
 
 **Android:** System proxy properties, ConnectivityManager, global proxy settings, VPN transport, tun/ppp interfaces.
 **iOS:** CFNetwork proxy settings (HTTP/HTTPS/SOCKS), utun/ppp/ipsec network interfaces.
+**macOS:** `SCDynamicStoreCopyProxies` (HTTP/HTTPS/SOCKS proxy), environment variables (`http_proxy`, etc.), `getifaddrs` VPN interfaces (utun/ppp/ipsec/tap/tun).
+**Windows:** `WinHttpGetIEProxyConfigForCurrentUser`, `GetAdaptersInfo` VPN adapter detection, environment variables.
+**Linux:** Proxy environment variables, `getifaddrs` VPN interfaces (tun/tap/ppp/wg).
+**Web:** WebRTC availability check (VPN/privacy extensions block `RTCPeerConnection`).
 
 ---
 
@@ -432,13 +444,20 @@ FlutterNeoShield.screen.onRecordingStateChanged.listen((event) {
 
 **What each platform does when you enable protection:**
 
-| Action | Android | iOS |
-|--------|---------|-----|
-| User takes screenshot | Captures **black screen** | Captures **blank content** |
-| User starts screen recording | Records **black screen** | Content is **blanked**; recording state event fires |
-| User Chromecasts / AirPlays | **Black screen** on TV | **Blank content** on TV |
-| App appears in recent apps | Thumbnail is **black** | Thumbnail is **blurred** |
-| `adb screencap` (developer tool) | Captures **black screen** | N/A |
+| Action | Android | iOS | macOS | Windows | Linux | Web |
+|--------|---------|-----|-------|---------|-------|-----|
+| User takes screenshot | **Black screen** | **Blank content** | **Excluded from capture** | **Excluded from capture** | Best-effort | CSS protection |
+| User starts screen recording | **Black screen** | **Blanked** + event fires | **Excluded** | **Excluded** | Best-effort | CSS protection |
+| User Chromecasts / AirPlays | **Black screen** | **Blank** on TV | N/A | N/A | N/A | N/A |
+| App in recent apps / switcher | **Black** thumbnail | **Blurred** | N/A | N/A | N/A | N/A |
+| `adb screencap` / dev tools | **Black screen** | N/A | N/A | N/A | N/A | N/A |
+| Print (Ctrl+P) | N/A | N/A | N/A | N/A | N/A | **Blocked** |
+
+**Desktop screen protection mechanisms:**
+- **macOS:** `NSWindow.sharingType = .none` — OS-level exclusion from all capture methods.
+- **Windows:** `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)` with `WDA_MONITOR` fallback — prevents screenshots, recording, and remote desktop capture.
+- **Linux:** Best-effort (no universal screen capture prevention API on Linux).
+- **Web:** CSS-based (`user-select: none`, print media hiding, right-click/print shortcut blocking). Limited effectiveness against determined attackers.
 
 > **Note:** No software can prevent someone from pointing a camera at their phone screen. Screen Shield blocks all **digital** capture methods.
 
@@ -450,7 +469,7 @@ FlutterNeoShield.screen.onRecordingStateChanged.listen((event) {
 
 ```yaml
 dependencies:
-  flutter_neo_shield: ^0.8.0
+  flutter_neo_shield: ^0.9.0
 ```
 
 **Step 2:** Run:
@@ -583,7 +602,7 @@ Or toggle manually: `await FlutterNeoShield.screen.enableProtection()` / `.disab
 
 **Q: Does Screen Shield work on web or desktop?**
 
-A: Not yet. Screen capture prevention requires OS-level APIs that web browsers and Linux don't expose. macOS (`NSWindow.sharingType = .none`) and Windows (`SetWindowDisplayAffinity`) support is planned for a future release. On unsupported platforms, the calls are no-ops — no errors, no crashes.
+A: **Yes (v0.9.0+).** macOS uses `NSWindow.sharingType = .none` to exclude from all capture. Windows uses `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)`. Linux is best-effort (no universal API). Web uses CSS-based protection (user-select, print blocking, context menu blocking) — effective against casual capture but not against determined attackers.
 
 **Q: Does this send my data to any server?**
 
@@ -687,12 +706,14 @@ See the [Dio integration file](https://github.com/neelakandanz/flutter-neo-shiel
 
 | Platform | Log Shield | Clipboard Shield | Memory Shield | String Shield | RASP Shield | Screen Shield |
 |----------|:----------:|:----------------:|:-------------:|:-------------:|:-----------:|:-------------:|
-| Android | Yes | Yes | Yes (native wipe) | Yes | Yes | Yes (FLAG_SECURE) |
-| iOS | Yes | Yes | Yes (native wipe) | Yes | Yes | Yes (secure layer + detection) |
-| Web | Yes | Yes | Yes (Dart fallback) | Yes | No | No |
-| macOS | Yes | Yes | Yes (Dart fallback) | Yes | No | Planned |
-| Windows | Yes | Yes | Yes (Dart fallback) | Yes | No | Planned |
-| Linux | Yes | Yes | Yes (Dart fallback) | Yes | No | No |
+| Android | Yes | Yes | Yes (native wipe) | Yes | Yes (native) | Yes (FLAG_SECURE) |
+| iOS | Yes | Yes | Yes (native wipe) | Yes | Yes (native) | Yes (secure layer + detection) |
+| macOS | Yes | Yes | Yes (native wipe) | Yes | Yes (native) | Yes (NSWindow.sharingType) |
+| Windows | Yes | Yes | Yes (native wipe) | Yes | Yes (native) | Yes (SetWindowDisplayAffinity) |
+| Linux | Yes | Yes | Yes (native wipe) | Yes | Yes (native) | Yes (best-effort) |
+| Web | Yes | Yes | Yes (Dart wipe) | Yes | Yes (JS heuristic) | Yes (CSS-based) |
+
+> **Desktop & Web RASP** (v0.9.0): All 10 RASP checks now run in native code on every platform. Desktop uses platform-specific APIs (sysctl, ptrace, IOKit on macOS; NtQueryInformationProcess, WinVerifyTrust on Windows; /proc filesystem on Linux). Web uses browser JavaScript heuristics via `dart:js_interop` + `package:web` — fully WASM-compatible.
 
 ---
 

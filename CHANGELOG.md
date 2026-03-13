@@ -1,3 +1,71 @@
+## 1.9.0
+
+### Native RASP, Screen Shield & Memory Shield on All 6 Platforms + WASM Support
+
+All security features now run in **native code** on every platform — macOS (Swift), Windows (C++), Linux (C++), and Web (JavaScript via `dart:js_interop`). No more Dart-side stubs or fallbacks for desktop/web.
+
+#### Native Desktop Plugins (macOS, Windows, Linux)
+
+All 10 RASP checks, screen protection, and secure memory wipe are now implemented natively:
+
+* **macOS (Swift):**
+  * RASP: `sysctl P_TRACED`, `ptrace PT_DENY_ATTACH`, IOKit VM detection, `SecCodeCopySelf` + `SecStaticCodeCheckValidity`, `SCDynamicStoreCopyProxies`, `_dyld_image_count` hook scanning, Frida port/file/dylib detection, `getifaddrs` VPN interfaces.
+  * Screen: `NSWindow.sharingType = .none` (OS-level capture exclusion), `CGWindowListCopyWindowInfo` recording detection.
+  * Memory: `Data.resetBytes` secure wipe via MethodChannel.
+
+* **Windows (C++):**
+  * RASP: `IsDebuggerPresent`, `CheckRemoteDebuggerPresent`, `NtQueryInformationProcess` (ProcessDebugPort/ProcessDebugObjectHandle), CPUID hypervisor bit, SMBIOS firmware table, `WinVerifyTrust` Authenticode, `WinHttpGetIEProxyConfigForCurrentUser`, `GetAdaptersInfo` VPN detection, DR0-DR3 hardware breakpoint registers.
+  * Screen: `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)` with `WDA_MONITOR` fallback.
+  * Memory: `SecureZeroMemory` secure wipe via MethodChannel.
+  * Links: wintrust, crypt32, ws2_32, iphlpapi, psapi, ntdll.
+
+* **Linux (C++):**
+  * RASP: `/proc/self/status` TracerPid, `PTRACE_TRACEME`, `/sys/class/dmi/id` VM detection, `systemd-detect-virt`, `LD_PRELOAD`/`LD_LIBRARY_PATH`/`LD_AUDIT` injection detection, ELF magic verification, `/proc/self/exe` inode comparison, `getifaddrs` VPN interfaces (tun/tap/ppp/wg).
+  * Screen: Best-effort (Linux has no universal capture prevention API).
+  * Memory: `explicit_bzero` secure wipe via MethodChannel.
+
+#### Native Web Plugin (WASM-Compatible)
+
+* **Rewrote** `flutter_neo_shield_web.dart` using `package:web` + `dart:js_interop` — fully compatible with both **JavaScript and WASM** compilation targets.
+* Replaced deprecated `dart:html` / `dart:js` (JS-only) with modern WASM-safe APIs.
+* All JS interop goes through `@JS('eval') external JSAny? _jsEval()` binding.
+* **Web RASP checks:**
+  * Debugger/DevTools: Window outer/inner size diff heuristic (docked panel detection).
+  * Emulator: `navigator.webdriver`, HeadlessChrome UA, automation global properties, empty `navigator.languages`.
+  * Hooks: Native function `toString()` check for `[native code]` (fetch, XMLHttpRequest, eval, Promise, JSON.parse/stringify, Function).
+  * Integrity: Cross-origin `<script>` injection, excessive inline script count.
+  * Signature: `Function.prototype.bind`, `Object.prototype.toString`, `Array.prototype.push` tampering.
+  * Native Debug: Computation timing anomaly detection.
+  * Network Threats: WebRTC availability check (`RTCPeerConnection` blocked by VPN/privacy extensions).
+  * Root/Frida: N/A on web — always returns `false`.
+* **Web Screen Protection:** CSS-based (`user-select: none`, `@media print { body { display: none } }`, context menu prevention, Ctrl+P blocking).
+* **Web Memory Shield:** In-memory Dart store with zero-fill wipe.
+
+#### SDK & Dependency Changes
+
+* **Minimum Dart SDK:** `>=3.0.0` → `>=3.3.0` (required for `dart:js_interop` / WASM support).
+* **Minimum Flutter:** `>=3.0.0` → `>=3.19.0`.
+* **New dependency:** `web: ^1.0.0` (replaces `dart:html` for WASM compatibility).
+* **iOS podspec version** synced to `1.9.0` (was stuck at `0.2.0`).
+
+#### Plugin Architecture
+
+* **pubspec.yaml:** Desktop platforms now register native plugin classes instead of Dart stubs:
+  * macOS: `pluginClass: FlutterNeoShieldPlugin` (Swift)
+  * Windows: `pluginClass: FlutterNeoShieldPluginCApi` (C++)
+  * Linux: `pluginClass: FlutterNeoShieldPlugin` (C++ / GObject)
+* **Removed** desktop stub classes from `flutter_neo_shield_stub.dart` — all platforms now use native plugins.
+* All native plugins register handlers on the same MethodChannel names (`com.neelakandan.flutter_neo_shield/rasp`, `/screen`, `/memory`) — zero Dart-side changes required.
+
+#### README Updated
+
+* Platform support table updated: all 6 platforms now show native RASP, Screen Shield, and Memory Shield support.
+* Added per-platform detection details for Signature, Native Debug, and Network Threat checks.
+* Added desktop screen protection mechanism descriptions.
+* Updated Screen Shield FAQ.
+
+---
+
 ## 0.8.0
 
 ### P0 Anti-Reverse-Engineering: Signature, Native Debug, and Network Threat Detection

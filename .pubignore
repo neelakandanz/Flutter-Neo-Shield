@@ -3,3 +3,6 @@ build/
 .github/
 gif/
 screenshots/
+example/macos/
+example/.DS_Store
+example/.flutter-plugins-dependencies
