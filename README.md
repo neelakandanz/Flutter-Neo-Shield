@@ -469,7 +469,7 @@ FlutterNeoShield.screen.onRecordingStateChanged.listen((event) {
 
 ```yaml
 dependencies:
-  flutter_neo_shield: ^0.9.0
+  flutter_neo_shield: ^1.9.0
 ```
 
 **Step 2:** Run:
@@ -602,7 +602,7 @@ Or toggle manually: `await FlutterNeoShield.screen.enableProtection()` / `.disab
 
 **Q: Does Screen Shield work on web or desktop?**
 
-A: **Yes (v0.9.0+).** macOS uses `NSWindow.sharingType = .none` to exclude from all capture. Windows uses `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)`. Linux is best-effort (no universal API). Web uses CSS-based protection (user-select, print blocking, context menu blocking) — effective against casual capture but not against determined attackers.
+A: **Yes (v1.9.0+).** macOS uses `NSWindow.sharingType = .none` to exclude from all capture. Windows uses `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)`. Linux is best-effort (no universal API). Web uses CSS-based protection (user-select, print blocking, context menu blocking) — effective against casual capture but not against determined attackers.
 
 **Q: Does this send my data to any server?**
 
@@ -713,7 +713,7 @@ See the [Dio integration file](https://github.com/neelakandanz/flutter-neo-shiel
 | Linux | Yes | Yes | Yes (native wipe) | Yes | Yes (native) | Yes (best-effort) |
 | Web | Yes | Yes | Yes (Dart wipe) | Yes | Yes (JS heuristic) | Yes (CSS-based) |
 
-> **Desktop & Web RASP** (v0.9.0): All 10 RASP checks now run in native code on every platform. Desktop uses platform-specific APIs (sysctl, ptrace, IOKit on macOS; NtQueryInformationProcess, WinVerifyTrust on Windows; /proc filesystem on Linux). Web uses browser JavaScript heuristics via `dart:js_interop` + `package:web` — fully WASM-compatible.
+> **Desktop & Web RASP** (v1.9.0): All 10 RASP checks now run in native code on every platform. Desktop uses platform-specific APIs (sysctl, ptrace, IOKit on macOS; NtQueryInformationProcess, WinVerifyTrust on Windows; /proc filesystem on Linux). Web uses browser JavaScript heuristics via `dart:js_interop` + `package:web` — fully WASM-compatible.
 
 ---
 
