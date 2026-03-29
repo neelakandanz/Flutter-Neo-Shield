@@ -24,6 +24,8 @@ Runtime protection, PII scrubbing, encrypted storage, biometric auth, anti-tampe
 
 Scan your Flutter project for **90+ security vulnerabilities** across 11 categories — from the command line.
 
+![CLI Security Scanner Report](screenshots/cli_security_scanner_report.png)
+
 ```bash
 # Standard scan (all categories)
 dart run flutter_neo_shield:scan
