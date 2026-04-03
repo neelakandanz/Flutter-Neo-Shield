@@ -52,7 +52,7 @@ bool HookDetector::CheckSuspiciousModules() {
     wchar_t path[MAX_PATH];
     if (::GetModuleFileNameW(modules[i], path, MAX_PATH)) {
       std::wstring pathStr(path);
-      std::transform(pathStr.begin(), pathStr.end(), pathStr.begin(), ::towlower);
+      std::transform(pathStr.begin(), pathStr.end(), pathStr.begin(), [](wchar_t c) { return (wchar_t)::towlower(c); });
 
       for (size_t j = 0; j < kNamesCount; j++) {
         std::wstring wSuspicious(kNames[j].begin(), kNames[j].end());
@@ -73,7 +73,7 @@ bool HookDetector::CheckEnvironment() {
   DWORD size = ::GetEnvironmentVariableW(L"__COMPAT_LAYER", buffer, MAX_PATH);
   if (size > 0) {
     std::wstring compat(buffer, size);
-    std::transform(compat.begin(), compat.end(), compat.begin(), ::towlower);
+    std::transform(compat.begin(), compat.end(), compat.begin(), [](wchar_t c) { return (wchar_t)::towlower(c); });
     std::wstring wInject(sInject.begin(), sInject.end());
     if (compat.find(wInject) != std::wstring::npos) {
       return true;

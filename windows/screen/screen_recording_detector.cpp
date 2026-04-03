@@ -39,7 +39,7 @@ bool ScreenRecordingDetector::CheckRecordingProcesses() const {
   if (::Process32FirstW(snapshot, &pe)) {
     do {
       std::wstring name(pe.szExeFile);
-      std::transform(name.begin(), name.end(), name.begin(), ::towlower);
+      std::transform(name.begin(), name.end(), name.begin(), [](wchar_t c) { return (wchar_t)::towlower(c); });
 
       for (const auto &recorder : recording_processes) {
         if (name == recorder) {

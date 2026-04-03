@@ -1,5 +1,9 @@
 #include "network_threat_detector.h"
 
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
 #include <windows.h>
 #include <winhttp.h>
 #include <iphlpapi.h>
@@ -68,7 +72,7 @@ bool NetworkThreatDetector::CheckVpn() {
   PIP_ADAPTER_INFO adapter = adapterInfo;
   while (adapter) {
     std::string desc(adapter->Description);
-    std::transform(desc.begin(), desc.end(), desc.begin(), ::tolower);
+    std::transform(desc.begin(), desc.end(), desc.begin(), [](char c) { return (char)::tolower((unsigned char)c); });
 
     for (size_t i = 0; i < kVpnCount; i++) {
       if (desc.find(kVpnIndicators[i]) != std::string::npos) {

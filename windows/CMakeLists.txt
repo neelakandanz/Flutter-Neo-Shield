@@ -21,6 +21,7 @@ add_library(${PLUGIN_NAME} SHARED
   "rasp/network_threat_detector.cpp"
   "screen/screen_protector.cpp"
   "screen/screen_recording_detector.cpp"
+  "location/location_shield_handler.cpp"
 )
 
 apply_standard_settings(${PLUGIN_NAME})

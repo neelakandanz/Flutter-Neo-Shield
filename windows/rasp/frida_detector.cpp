@@ -1,8 +1,12 @@
 #include "frida_detector.h"
 
-#include <windows.h>
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <windows.h>
 #include <psapi.h>
 #include <tlhelp32.h>
 #include <string>
@@ -32,7 +36,7 @@ bool FridaDetector::CheckNamedPipes() {
   bool found = false;
   do {
     std::wstring pipeName(findData.cFileName);
-    std::transform(pipeName.begin(), pipeName.end(), pipeName.begin(), ::towlower);
+    std::transform(pipeName.begin(), pipeName.end(), pipeName.begin(), [](wchar_t c) { return (wchar_t)::towlower(c); });
     if (pipeName.find(wFrida) != std::wstring::npos) {
       found = true;
       break;
@@ -60,7 +64,7 @@ bool FridaDetector::CheckPorts() {
     sockaddr_in addr = {};
     addr.sin_family = AF_INET;
     addr.sin_port = htons(static_cast<u_short>(port));
-    addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
 
     if (::connect(sock, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) == 0) {
       found = true;
@@ -87,7 +91,7 @@ bool FridaDetector::CheckProcesses() {
   if (::Process32FirstW(snapshot, &pe)) {
     do {
       std::wstring name(pe.szExeFile);
-      std::transform(name.begin(), name.end(), name.begin(), ::towlower);
+      std::transform(name.begin(), name.end(), name.begin(), [](wchar_t c) { return (wchar_t)::towlower(c); });
       if (name.find(wFrida) != std::wstring::npos) {
         found = true;
         break;
@@ -114,7 +118,7 @@ bool FridaDetector::CheckLoadedModules() {
     wchar_t name[MAX_PATH];
     if (::GetModuleFileNameW(modules[i], name, MAX_PATH)) {
       std::wstring nameStr(name);
-      std::transform(nameStr.begin(), nameStr.end(), nameStr.begin(), ::towlower);
+      std::transform(nameStr.begin(), nameStr.end(), nameStr.begin(), [](wchar_t c) { return (wchar_t)::towlower(c); });
       if (nameStr.find(wFrida) != std::wstring::npos) {
         return true;
       }

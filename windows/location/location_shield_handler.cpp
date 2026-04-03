@@ -1,5 +1,8 @@
 #include "location_shield_handler.h"
 
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <windows.h>
 #include <tlhelp32.h>
 #include <cmath>

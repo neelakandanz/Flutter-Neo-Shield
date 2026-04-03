@@ -76,7 +76,7 @@ bool VMDetector::CheckSystemFirmware() {
   std::string firmware(reinterpret_cast<char *>(buffer.data()), written);
   std::string lower_firmware = firmware;
   std::transform(lower_firmware.begin(), lower_firmware.end(),
-                 lower_firmware.begin(), ::tolower);
+                 lower_firmware.begin(), [](char c) { return (char)::tolower((unsigned char)c); });
 
   for (size_t i = 0; i < kVmStringsCount; i++) {
     if (lower_firmware.find(kVmStrings[i]) != std::string::npos) {

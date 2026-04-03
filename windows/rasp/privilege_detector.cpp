@@ -1,6 +1,11 @@
 #include "privilege_detector.h"
 
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
 #include <windows.h>
+#include <shlobj.h>
 #include <sddl.h>
 
 #pragma comment(lib, "advapi32.lib")
