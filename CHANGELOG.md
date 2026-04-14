@@ -1,3 +1,10 @@
+## 2.1.1
+
+### Location Shield — Enhanced Spoofing Detection
+- Added `checkDefaultMockLocationApp` to `SpoofingAppDetector` on Android to detect the system-level mock location app setting.
+- Resolved Android build errors and incremental compilation issues related to the detector implementation.
+- Updated CLI Security Scanner version in reports to match the package version.
+
 ## 2.1.0
 
 ### CLI Security Scanner — Advanced Deep Analysis

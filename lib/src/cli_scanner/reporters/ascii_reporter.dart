@@ -150,7 +150,7 @@ class AsciiReporter extends Reporter {
       buf.writeln('  $_bgRed$_bold FAIL $_reset ${result.criticalCount} critical, ${result.highCount} high severity issues require attention.');
     }
     buf.writeln();
-    buf.writeln('  $_dim Powered by flutter_neo_shield v2.1.0$_reset');
+    buf.writeln('  $_dim Powered by flutter_neo_shield v2.1.1$_reset');
     buf.writeln('  $_dim Run with --format json for CI/CD integration$_reset');
     buf.writeln();
   }

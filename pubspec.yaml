@@ -1,6 +1,6 @@
 name: flutter_neo_shield
 description: Complete client-side security toolkit for Flutter — 27 shields + CLI security scanner covering RASP, PII protection, encryption, biometrics, anti-tampering, and more. Native on all 6 platforms.
-version: 2.1.0
+version: 2.1.1
 homepage: https://github.com/neelakandanz/flutter-neo-shield
 repository: https://github.com/neelakandanz/flutter-neo-shield
 issue_tracker: https://github.com/neelakandanz/flutter-neo-shield/issues

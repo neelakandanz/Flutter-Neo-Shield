@@ -84,4 +84,13 @@ class SpoofingAppDetector(private val context: Context) {
             return false
         }
     }
+
+    /** Check which app is set as the default mock location app in developer settings. */
+    fun checkDefaultMockLocationApp(): String? {
+        return try {
+            android.provider.Settings.Secure.getString(context.contentResolver, "mock_location_app")
+        } catch (_: Exception) {
+            null
+        }
+    }
 }

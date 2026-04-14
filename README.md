@@ -16,7 +16,7 @@ Runtime protection, PII scrubbing, encrypted storage, biometric auth, anti-tampe
 
 ---
 
-> **v2.1.0** — NEW: CLI Security Scanner with 90+ rules, 11 categories, 5 output formats. Run `dart run flutter_neo_shield:scan`.
+> **v2.1.1** — NEW: CLI Security Scanner with 90+ rules, 11 categories, 5 output formats. Run `dart run flutter_neo_shield:scan`.
 
 ---
 
@@ -167,7 +167,7 @@ Every scan produces a **security score (0-100)** and **letter grade (A-F)**:
 ```yaml
 # pubspec.yaml
 dependencies:
-  flutter_neo_shield: ^2.1.0
+  flutter_neo_shield: ^2.1.1
 ```
 
 ```dart

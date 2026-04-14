@@ -31,7 +31,7 @@ class SarifReporter extends Reporter {
           'tool': {
             'driver': {
               'name': 'flutter_neo_shield',
-              'version': '2.1.0',
+              'version': '2.1.1',
               'informationUri':
                   'https://github.com/neelakandanz/flutter-neo-shield',
               'rules': uniqueRules.values.toList(),
