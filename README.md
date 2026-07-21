@@ -123,7 +123,7 @@ Every scan produces a **security score (0-100)** and **letter grade (A-F)**:
 |---|--------|-------------|
 | 15 | **Secure Storage Shield** | Keychain/Keystore-backed encrypted key-value storage |
 | 16 | **Biometric Shield** | Crypto-bound biometric auth (Face ID, Touch ID, fingerprint) |
-| 17 | **Encryption Shield** | AES-256 encryption for local data — strings, bytes, JSON |
+| 17 | **Encryption Shield** | Authenticated AES-256-GCM encryption for local data — strings, bytes, JSON |
 | 18 | **DLP Shield** | Data leak prevention — sanitize deep links, intents, share data |
 
 ### Network & Supply Chain

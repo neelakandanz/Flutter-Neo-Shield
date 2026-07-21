@@ -29,6 +29,16 @@ class LocationIntegrityChecker {
                                 triggeredLayers >= 3 ? 1.3 :
                                 triggeredLayers >= 2 ? 1.1 : 1.0
 
-        return min(normalized * amplifier, 1.0)
+        let weighted = min(normalized * amplifier, 1.0)
+
+        // High-confidence veto: any definitive single signal is conclusive,
+        // even when the "advanced" layers report 0.
+        let vetoThresholds: [String: Double] = [
+            "mockProvider": 1.0, "locationHook": 0.95, "spoofingApp": 1.0,
+        ]
+        let vetoed = vetoThresholds.contains { key, threshold in
+            (scores[key] ?? 0.0) >= threshold
+        }
+        return vetoed ? max(weighted, 0.9) : weighted
     }
 }

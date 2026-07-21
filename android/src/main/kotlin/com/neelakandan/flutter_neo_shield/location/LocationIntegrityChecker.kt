@@ -17,6 +17,22 @@ class LocationIntegrityChecker {
         "temporalAnomaly" to 0.85
     )
 
+    /**
+     * Layers whose positive result is conclusive on its own. A single such
+     * signal (e.g. an active mock-location provider) must flag as spoofed even
+     * though the weighted average of all six layers would fall below the 0.5
+     * threshold — otherwise a real spoof using only mock location goes
+     * undetected while the "advanced" layers report 0.
+     */
+    private val vetoThresholds = mapOf(
+        "mockProvider" to 1.0,
+        "locationHook" to 0.95,
+        "spoofingApp" to 1.0
+    )
+
+    /** Confidence assigned when a high-confidence veto layer fires. */
+    private val vetoConfidence = 0.9
+
     /** Compute weighted confidence from all layer scores. */
     fun computeConfidence(scores: Map<String, Double>): Double {
         var totalScore = 0.0
@@ -42,6 +58,13 @@ class LocationIntegrityChecker {
             else -> 1.0
         }
 
-        return (normalized * amplifier).coerceIn(0.0, 1.0)
+        val weighted = (normalized * amplifier).coerceIn(0.0, 1.0)
+
+        // High-confidence veto: any definitive single signal is conclusive.
+        val vetoed = vetoThresholds.any { (key, threshold) ->
+            (scores[key] ?: 0.0) >= threshold
+        }
+
+        return if (vetoed) maxOf(weighted, vetoConfidence) else weighted
     }
 }

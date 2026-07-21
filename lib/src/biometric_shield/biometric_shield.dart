@@ -1,9 +1,15 @@
 import '../platform/shield_codec.dart';
 import 'package:flutter/services.dart';
 
-/// Biometric Auth Shield — Cryptographically-bound biometric authentication.
+/// Biometric Auth Shield — device biometric authentication.
+///
+/// Wraps the platform biometric prompt: Android `BiometricPrompt`
+/// (BIOMETRIC_STRONG / Class 3) and iOS `LAContext` (Face ID / Touch ID),
+/// with an optional device-credential (PIN/pattern/password) fallback.
+/// Returns a success/failure result; it does not itself sign a challenge.
 class BiometricShield {
   BiometricShield._();
+
   /// Singleton instance of [BiometricShield].
   static final BiometricShield instance = BiometricShield._();
 
@@ -21,34 +27,52 @@ class BiometricShield {
       if (result == null) return BiometricAvailability.unavailable;
       return BiometricAvailability(
         isAvailable: result['available'] as bool? ?? false,
-        biometricTypes: (result['types'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+        biometricTypes: (result['types'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            [],
         canAuthenticate: result['canAuth'] as bool? ?? false,
       );
-    } on MissingPluginException { return BiometricAvailability.unavailable; }
-    on PlatformException { return BiometricAvailability.unavailable; }
+    } on MissingPluginException {
+      return BiometricAvailability.unavailable;
+    } on PlatformException {
+      return BiometricAvailability.unavailable;
+    }
   }
 
   /// Triggers biometric authentication with the given [reason] prompt.
   ///
   /// Set [allowDeviceCredential] to `true` to allow PIN/password fallback.
   /// Returns a [BiometricResult] indicating success or failure.
-  Future<BiometricResult> authenticate({required String reason, bool allowDeviceCredential = false}) async {
+  Future<BiometricResult> authenticate(
+      {required String reason, bool allowDeviceCredential = false}) async {
     try {
       final result = await _channel.invokeMethod<Map>('authenticate', {
         'reason': reason,
         'allowDeviceCredential': allowDeviceCredential,
       });
-      if (result == null) return const BiometricResult(success: false, error: 'No response');
-      return BiometricResult(success: result['success'] as bool? ?? false, error: result['error'] as String?);
-    } on MissingPluginException { return const BiometricResult(success: false, error: 'Platform not supported'); }
-    on PlatformException catch (e) { return BiometricResult(success: false, error: e.message); }
+      if (result == null) {
+        return const BiometricResult(success: false, error: 'No response');
+      }
+      return BiometricResult(
+          success: result['success'] as bool? ?? false,
+          error: result['error'] as String?);
+    } on MissingPluginException {
+      return const BiometricResult(
+          success: false, error: 'Platform not supported');
+    } on PlatformException catch (e) {
+      return BiometricResult(success: false, error: e.message);
+    }
   }
 }
 
 /// Describes the biometric capabilities of the current device.
 class BiometricAvailability {
   /// Creates a [BiometricAvailability] with the given fields.
-  const BiometricAvailability({this.isAvailable = false, this.biometricTypes = const [], this.canAuthenticate = false});
+  const BiometricAvailability(
+      {this.isAvailable = false,
+      this.biometricTypes = const [],
+      this.canAuthenticate = false});
 
   /// Represents an unavailable/unsupported biometric state.
   static const unavailable = BiometricAvailability();
@@ -63,7 +87,8 @@ class BiometricAvailability {
   final bool canAuthenticate;
 
   @override
-  String toString() => 'BiometricAvailability(available: $isAvailable, types: $biometricTypes, canAuth: $canAuthenticate)';
+  String toString() =>
+      'BiometricAvailability(available: $isAvailable, types: $biometricTypes, canAuth: $canAuthenticate)';
 }
 
 /// The outcome of a biometric authentication attempt.

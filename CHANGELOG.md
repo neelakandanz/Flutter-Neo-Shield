@@ -1,3 +1,17 @@
+## 2.2.0
+
+### Security Correctness — "stop promising what we don't deliver"
+
+Hardening pass that replaces weak/placeholder security primitives with real implementations. **Breaking:** the Encryption Shield ciphertext format changed (see below) — data encrypted with 2.1.x cannot be decrypted by 2.2.0.
+
+- **Encryption Shield — real AES-256-GCM.** Replaced the repeating-key XOR cipher with authenticated **AES-256-GCM** (via `pointycastle`). A fresh random 96-bit nonce is generated per call and a 128-bit authentication tag detects tampering/wrong keys on decrypt. Method signatures are unchanged (still synchronous). `xorEncrypt`/`xorDecrypt`/`generateIV` are deprecated. Added `generateNonce()`.
+- **Certificate Pinning Shield — real enforcement.** `createPinnedClient()` now computes the SHA-256 of the presented certificate's DER encoding and accepts an untrusted chain **only** when it matches a configured pin (fail-closed); previously the callback accepted/rejected nothing. Added `certificateSha256()`, `validateCertificateChain()`, and `isPinned()`.
+- **Dependency Shield — real SHA-256.** `verifyLockfile()` now hashes file contents with SHA-256 (was Dart's non-cryptographic `String.hashCode`) and honors the supplied file path. Added `computeFileHash()`.
+- **Location Shield — high-confidence veto.** `LocationIntegrityChecker` (Android/iOS/macOS) now flags a spoof when any conclusive single layer fires (active mock provider, location hook, or a running spoofing app) instead of requiring the weighted average of all six layers to cross the threshold — a device with mock location enabled is now detected.
+- **Biometric Shield — Android implemented.** Added `androidx.biometric` `BiometricPrompt` (BIOMETRIC_STRONG, optional device-credential fallback) via a new `BiometricHandler`; the plugin now handles `checkBiometric`/`authenticate` on Android (previously `notImplemented`). Docstring corrected to describe biometric auth accurately.
+- Added unit tests for the Encryption, Certificate Pinning, and Dependency shields.
+- Added `crypto` and `pointycastle` dependencies. Synced CLI scanner report version strings.
+
 ## 2.1.1
 
 ### Location Shield — Enhanced Spoofing Detection

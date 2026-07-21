@@ -12,6 +12,18 @@ class LocationIntegrityChecker {
         "temporalAnomaly": 0.85,
     ]
 
+    /// Layers whose positive result is conclusive on its own. A single such
+    /// signal (e.g. a simulated location) must flag as spoofed even though the
+    /// weighted average of all six layers would fall below the 0.5 threshold.
+    private let vetoThresholds: [String: Double] = [
+        "mockProvider": 1.0,
+        "locationHook": 0.95,
+        "spoofingApp": 1.0,
+    ]
+
+    /// Confidence assigned when a high-confidence veto layer fires.
+    private let vetoConfidence: Double = 0.9
+
     func computeConfidence(scores: [String: Double]) -> Double {
         var totalScore: Double = 0.0
         var totalWeight: Double = 0.0
@@ -35,6 +47,13 @@ class LocationIntegrityChecker {
         default: amplifier = 1.0
         }
 
-        return min(normalized * amplifier, 1.0)
+        let weighted = min(normalized * amplifier, 1.0)
+
+        // High-confidence veto: any definitive single signal is conclusive.
+        let vetoed = vetoThresholds.contains { key, threshold in
+            (scores[key] ?? 0.0) >= threshold
+        }
+
+        return vetoed ? max(weighted, vetoConfidence) : weighted
     }
 }

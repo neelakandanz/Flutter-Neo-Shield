@@ -42,6 +42,7 @@ class FlutterNeoShieldPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private var biometricChannel: MethodChannel? = null
     private var deviceBindingChannel: MethodChannel? = null
     private var secureStorageHandler: com.neelakandan.flutter_neo_shield.secure.SecureStorageHandler? = null
+    private var biometricHandler: BiometricHandler? = null
 
     override fun onAttachedToEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
         applicationContext = binding.applicationContext
@@ -66,6 +67,7 @@ class FlutterNeoShieldPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
         biometricChannel = MethodChannel(binding.binaryMessenger, ShieldCodec.decode(ShieldCodec.CH_BIOMETRIC))
         biometricChannel?.setMethodCallHandler(this)
+        biometricHandler = BiometricHandler { activity }
 
         deviceBindingChannel = MethodChannel(binding.binaryMessenger, ShieldCodec.decode(ShieldCodec.CH_DEVICE_BINDING))
         deviceBindingChannel?.setMethodCallHandler(this)
@@ -381,6 +383,24 @@ class FlutterNeoShieldPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 result.success(secureStorageHandler?.wipeAll() ?: false)
             }
 
+            // Biometric Shield
+            "checkBiometric" -> {
+                biometricHandler?.checkAvailability(result)
+                    ?: result.success(
+                        mapOf("available" to false, "canAuth" to false, "types" to emptyList<String>())
+                    )
+            }
+            "authenticate" -> {
+                val reason = call.argument<String>("reason") ?: "Authenticate"
+                val allowDeviceCredential = call.argument<Boolean>("allowDeviceCredential") ?: false
+                val handler = biometricHandler
+                if (handler != null) {
+                    handler.authenticate(reason, allowDeviceCredential, result)
+                } else {
+                    result.success(mapOf("success" to false, "error" to "Biometric unavailable"))
+                }
+            }
+
             // Device Binding Shield
             "getDeviceFingerprint" -> {
                 val context = applicationContext
@@ -461,5 +481,6 @@ class FlutterNeoShieldPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         biometricChannel?.setMethodCallHandler(null)
         deviceBindingChannel?.setMethodCallHandler(null)
         secureStorageHandler = null
+        biometricHandler = null
     }
 }
