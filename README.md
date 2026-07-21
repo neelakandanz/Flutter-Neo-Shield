@@ -122,7 +122,7 @@ Every scan produces a **security score (0-100)** and **letter grade (A-F)**:
 | # | Shield | What it does |
 |---|--------|-------------|
 | 15 | **Secure Storage Shield** | Keychain/Keystore-backed encrypted key-value storage |
-| 16 | **Biometric Shield** | Crypto-bound biometric auth (Face ID, Touch ID, fingerprint) |
+| 16 | **Biometric Shield** | Device biometric auth (BiometricPrompt, Face ID, Touch ID) with optional device-credential fallback |
 | 17 | **Encryption Shield** | Authenticated AES-256-GCM encryption for local data — strings, bytes, JSON |
 | 18 | **DLP Shield** | Data leak prevention — sanitize deep links, intents, share data |
 
@@ -690,6 +690,8 @@ print('Risk level: ${fullVerdict.riskLevel}'); // none, low, medium, high, criti
 | 6. Temporal Anomaly | Teleportation, impossible speed, bearing reversal, replay attacks |
 | 7. Integrity | Weighted aggregation + cross-validation with RASP detectors |
 
+> **Single-signal veto:** any conclusive layer on its own — an active mock-location provider, a detected location hook, or a running spoofing app — flags the location as fake immediately, without needing several layers to agree. Layers 4–6 (GPS signal, sensor fusion, temporal) refine confidence when a live location stream is available.
+
 **Platform depth:**
 
 - **Android:** Full 7 layers (GNSS callbacks, reflection hook detection, sensor correlation)
@@ -849,21 +851,28 @@ await storage.wipeAll();
 
 ### 11. Biometric Shield
 
-Crypto-bound biometric authentication:
+Device biometric authentication — Android `BiometricPrompt` (BIOMETRIC_STRONG / Class 3) and iOS `LAContext` (Face ID / Touch ID), with an optional device-credential (PIN/pattern/password) fallback. Returns a success/failure result; it does not itself sign a challenge.
 
 ```dart
 final bio = BiometricShield.instance;
 
-// Check availability
+// Check availability first
 final avail = await bio.checkAvailability();
-print('Types: ${avail.biometricTypes}'); // [faceID, touchID]
-
-// Authenticate
-final result = await bio.authenticate(reason: 'Confirm payment');
-if (result.success) {
-  // Proceed with payment
+if (avail.canAuthenticate) {
+  // Authenticate — allowDeviceCredential lets the user fall back to PIN/passcode
+  final result = await bio.authenticate(
+    reason: 'Confirm payment',
+    allowDeviceCredential: true,
+  );
+  if (result.success) {
+    // Proceed with payment
+  } else {
+    print('Auth failed: ${result.error}');
+  }
 }
 ```
+
+> **Platforms:** Android and iOS. On other platforms `checkAvailability()` reports unavailable and `authenticate()` returns a failure result.
 
 ### 12. RASP Monitor (Continuous)
 
@@ -913,7 +922,12 @@ final isValid = await DeviceBindingShield.instance.validateBinding(serverFingerp
 
 ### 15. Certificate Pinning Shield
 
-Prevent MITM attacks by pinning TLS certificates:
+Prevent MITM attacks by pinning TLS certificates. A pin is the **Base64-encoded SHA-256 digest of the certificate's DER encoding**. Compute one from the CLI:
+
+```sh
+openssl s_client -connect api.example.com:443 </dev/null 2>/dev/null \
+  | openssl x509 -outform der | openssl dgst -sha256 -binary | base64
+```
 
 ```dart
 CertPinShield.instance.pin('api.example.com', [
@@ -921,8 +935,21 @@ CertPinShield.instance.pin('api.example.com', [
   'sha256/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=', // Backup pin
 ]);
 
-final client = CertPinShield.instance.createPinnedClient();
+// The pinned client rejects any untrusted certificate that doesn't match a
+// pin (fail-closed) — this covers private-CA / self-signed pinning.
+final client = CertPinShield.instance.createPinnedClient()!;
+
+// Dart's HttpClient only surfaces certificates that already fail the system
+// trust chain, so to also block a *validly-signed* MITM cert that isn't your
+// pin, verify the response certificate explicitly:
+final response = await request.close();
+if (!CertPinShield.instance.validateCertificateChain('api.example.com', response.certificate)) {
+  response.detachSocket().then((s) => s.destroy());
+  throw const TlsException('Certificate pin mismatch');
+}
 ```
+
+> Compute a live certificate's pin in-app with `CertPinShield.instance.certificateSha256(cert)`.
 
 ### 16. Watermark Shield
 
@@ -959,6 +986,40 @@ Debug-only visual overview of all security checks:
 ```dart
 // Add to any screen during development
 SecurityDashboard()  // Shows all 10 RASP checks with green/red status
+```
+
+### 19. Encryption Shield
+
+Authenticated **AES-256-GCM** encryption for local data. Every ciphertext carries a random 96-bit nonce and a 128-bit authentication tag, so tampering or a wrong key is detected on decrypt (throws instead of returning garbage). Encrypting the same value twice produces different output.
+
+```dart
+final enc = EncryptionShield.instance;
+
+final key = enc.generateKey(); // 32-byte (256-bit) key — store in SecureStorageShield
+final ciphertext = enc.encryptString('card:4242 4242 4242 4242', key);
+final plaintext = enc.decryptString(ciphertext, key); // throws StateError if tampered / wrong key
+
+// JSON helpers
+final blob = enc.encryptJson({'balance': 1200, 'currency': 'USD'}, key);
+final data = enc.decryptJson(blob, key);
+```
+
+> Output layout (before Base64): `nonce (12 bytes) ‖ ciphertext ‖ tag (16 bytes)`. Pair with **Secure Storage Shield** to keep the key in the Keystore/Keychain.
+
+### 20. Dependency Shield
+
+Verify dependency files against known-good **SHA-256** checksums to catch tampered lockfiles:
+
+```dart
+final dep = DependencyShield.instance;
+
+// One-time: record the trusted hash (e.g. in CI, committed to your repo)
+final hash = await dep.computeFileHash('pubspec.lock');
+dep.registerHashes({'pubspec.lock': hash!});
+
+// At runtime / in CI: verify — an empty map means the file is unchanged
+final failures = await dep.verifyLockfile('pubspec.lock');
+if (failures.isNotEmpty) print('Dependency integrity failed: $failures');
 ```
 
 ---
